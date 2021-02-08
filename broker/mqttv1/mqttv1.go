@@ -23,6 +23,7 @@ type MQTTBrokerV1 struct {
 	WP          string
 	WR          bool
 	WQ          byte
+	C           bool
 	Logger      log.Logger
 	subscribers *sync.Map
 	c           MQTT.Client
@@ -42,7 +43,7 @@ func (s *MQTTBrokerV1) Connect() error {
 		cid = s.CID
 	}
 	opts.SetClientID(cid)
-	opts.SetCleanSession(true)
+	opts.SetCleanSession(s.C)
 	if s.Username != "" {
 		opts.SetUsername(s.Username)
 	}
@@ -218,7 +219,7 @@ func (s *mqttSubscriber) subscribe() error {
 	for _, o := range s.opt {
 		o(&s.opts)
 	}
-	logger.Debugf("mqttSubscriber#subscribe : subscribe topics is : %v , opts is : %v !", s.topics, s.opts)
+	logger.Debugf("MQTTBrokerV1#subscribe : subscribe topics is : %v , opts is : %v !", s.topics, s.opts)
 	for _, topic := range s.topics {
 		if token := c.Subscribe(topic, byte(s.opts.QOS), func(client MQTT.Client, message MQTT.Message) {
 			if s.callBack != nil {
@@ -232,7 +233,7 @@ func (s *mqttSubscriber) subscribe() error {
 				}
 				err := s.callBack(e)
 				if err != nil {
-					logger.Errorf("mqttSubscriber#subscribe : callBack err , err is : %v !", err)
+					logger.Errorf("MQTTBrokerV1#subscribe : callBack err , err is : %v !", err)
 				}
 			}
 		}); token.Wait() && token.Error() != nil {

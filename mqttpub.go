@@ -1,9 +1,12 @@
 package main
 
 import (
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/godaner/brokerc/broker"
 	"github.com/godaner/brokerc/broker/mqttv1"
 	"github.com/urfave/cli"
+	"log"
+	"os"
 )
 
 var MQTTPublishCommand = cli.Command{
@@ -47,7 +50,7 @@ var MQTTPublishCommand = cli.Command{
 			Usage:    "client id.",
 			Required: false,
 		},
-		cli.StringFlag{
+		cli.BoolFlag{
 			Name:     "d",
 			Usage:    "debug.",
 			Required: false,
@@ -72,7 +75,7 @@ var MQTTPublishCommand = cli.Command{
 			Usage:    "the topic on which to publish the client Will.",
 			Required: false,
 		},
-		cli.StringFlag{
+		cli.BoolFlag{
 			Name:     "will-retain",
 			Usage:    "if given, make the client Will retained.",
 			Required: false,
@@ -86,6 +89,12 @@ var MQTTPublishCommand = cli.Command{
 	Action: func(context *cli.Context) error {
 		h, p, u, P, i, t, d, q, r, m, wt, wp, wr, wq := context.String("h"), context.String("p"), context.String("u"), context.String("P"), context.String("i"), context.String("t"), context.Bool("d"), context.Int("q"), context.Bool("r"), context.String("m"), context.String("will-topic"), context.String("will-payload"), context.Bool("will-retain"), context.Int("will-qos")
 		logger.SetDebug(d)
+		if d {
+			mqtt.CRITICAL = log.New(os.Stdout, "MQTT_CRITICAL ", 0)
+			mqtt.ERROR = log.New(os.Stdout, "MQTT_ERROR ", 0)
+			mqtt.WARN = log.New(os.Stdout, "MQTT_WARN ", 0)
+			mqtt.DEBUG = log.New(os.Stdout, "MQTT_DEBUG ", 0)
+		}
 		b := mqttv1.MQTTBrokerV1{
 			IP:       h,
 			Port:     p,
@@ -110,7 +119,7 @@ var MQTTPublishCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-		logger.Infof("publish=> h:%v, p:%v, u:%v, P:%v, i:%v, t:%v, d:%v, q:%v, r:%v, m:%v !", h, p, u, P, i, t, d, q, r, m)
+		logger.Infof("PUBLISH=> h:%v, p:%v, u:%v, P:%v, i:%v, t:%v, d:%v, q:%v, r:%v, m:%v !", h, p, u, P, i, t, d, q, r, m)
 		return nil
 	},
 }
