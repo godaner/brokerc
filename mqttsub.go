@@ -103,7 +103,23 @@ var MQTTSubscribeCommand = cli.Command{
 		},
 	},
 	Action: func(context *cli.Context) error {
-		h, p, u, P, i, t, d, q, c, wt, wp, wr, wq, cafile, cert, key, insecure := context.String("h"), context.String("p"), context.String("u"), context.String("P"), context.String("i"), context.String("t"), context.Bool("d"), context.Int("q"), context.Bool("c"), context.String("will-topic"), context.String("will-payload"), context.Bool("will-retain"), context.Int("will-qos"), context.String("cafile"), context.String("cert"), context.String("key"), context.Bool("insecure")
+		h, p, u, P, i, t, d, q, c, wt, wp, wr, wq, cafile, cert, key, insecure := context.String("h"),
+			context.String("p"),
+			context.String("u"),
+			context.String("P"),
+			context.String("i"),
+			context.String("t"),
+			context.Bool("d"),
+			context.Int("q"),
+			context.Bool("c"),
+			context.String("will-topic"),
+			context.String("will-payload"),
+			context.Bool("will-retain"),
+			context.Int("will-qos"),
+			context.String("cafile"),
+			context.String("cert"),
+			context.String("key"),
+			context.Bool("insecure")
 		logger.SetDebug(d)
 		if d {
 			mqtt.CRITICAL = log.New(os.Stdout, "MQTT_CRITICAL ", 0)
@@ -134,7 +150,7 @@ var MQTTSubscribeCommand = cli.Command{
 		}
 		defer b.Disconnect()
 		s, err := b.Subscribe([]string{t}, func(event broker.Event) error {
-			logger.Infof("SUBSCRIBE=> h:%v, p:%v, u:%v, P:%v, i:%v, t:%v, d:%v, q:%v, c:%v, m:%v !", h, p, u, P, i, t, d, q, c, string(event.Message().Body))
+			logger.Infof("SUBSCRIBE=> h:%v, p:%v, u:%v, P:%v, i:%v, t:%v, q:%v, c:%v, m:%v !", h, p, u, P, i, t, q, c, string(event.Message().Body))
 			return nil
 		}, broker.SetSubQOS(q))
 		defer s.Unsubscribe()

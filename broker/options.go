@@ -27,6 +27,7 @@ func (p *PublishOptions) Marshal() string {
 type SubscribeOptions struct {
 	AutoAck      bool
 	AutoDel      bool
+	Duration     bool
 	Queue        string
 	ExchangeName string
 	ExchangeType string
@@ -50,6 +51,13 @@ type SubscribeOption func(*SubscribeOptions)
 type PublishOption func(*PublishOptions)
 
 // Set SubscribeOption
+// SetSubDuration
+func SetSubDuration(duration bool) SubscribeOption {
+	return func(o *SubscribeOptions) {
+		o.Duration = duration
+	}
+}
+
 // SetSubQOS
 func SetSubQOS(qos int) SubscribeOption {
 	return func(o *SubscribeOptions) {

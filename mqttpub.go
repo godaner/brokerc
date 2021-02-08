@@ -107,7 +107,24 @@ var MQTTPublishCommand = cli.Command{
 		},
 	},
 	Action: func(context *cli.Context) error {
-		h, p, u, P, i, t, d, q, r, m, wt, wp, wr, wq, cafile, cert, key, insecure := context.String("h"), context.String("p"), context.String("u"), context.String("P"), context.String("i"), context.String("t"), context.Bool("d"), context.Int("q"), context.Bool("r"), context.String("m"), context.String("will-topic"), context.String("will-payload"), context.Bool("will-retain"), context.Int("will-qos"), context.String("cafile"), context.String("cert"), context.String("key"), context.Bool("insecure")
+		h, p, u, P, i, t, d, q, r, m, wt, wp, wr, wq, cafile, cert, key, insecure := context.String("h"),
+			context.String("p"),
+			context.String("u"),
+			context.String("P"),
+			context.String("i"),
+			context.String("t"),
+			context.Bool("d"),
+			context.Int("q"),
+			context.Bool("r"),
+			context.String("m"),
+			context.String("will-topic"),
+			context.String("will-payload"),
+			context.Bool("will-retain"),
+			context.Int("will-qos"),
+			context.String("cafile"),
+			context.String("cert"),
+			context.String("key"),
+			context.Bool("insecure")
 		logger.SetDebug(d)
 		if d {
 			mqtt.CRITICAL = log.New(os.Stdout, "MQTT_CRITICAL ", 0)
@@ -144,7 +161,7 @@ var MQTTPublishCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-		logger.Infof("PUBLISH=> h:%v, p:%v, u:%v, P:%v, i:%v, t:%v, d:%v, q:%v, r:%v, m:%v !", h, p, u, P, i, t, d, q, r, m)
+		logger.Infof("PUBLISH=> h:%v, p:%v, u:%v, P:%v, i:%v, t:%v, q:%v, r:%v, m:%v !", h, p, u, P, i, t, q, r, m)
 		return nil
 	},
 }

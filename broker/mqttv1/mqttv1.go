@@ -1,16 +1,14 @@
 package mqttv1
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/godaner/brokerc/broker"
 	"github.com/godaner/brokerc/log"
+	"github.com/godaner/brokerc/tls"
 	"github.com/google/uuid"
 	"golang.org/x/net/context"
-	"io/ioutil"
 	"sync"
 	"time"
 )
@@ -36,92 +34,66 @@ type MQTTBrokerV1 struct {
 	c              MQTT.Client
 }
 
-func (s *MQTTBrokerV1) Connect() error {
-	s.subscribers = &sync.Map{}
-	s.Logger.Debugf("MQTTBrokerV1#Connect : info is : %v !", s)
+func (m *MQTTBrokerV1) Connect() error {
+	m.subscribers = &sync.Map{}
+	m.Logger.Debugf("MQTTBrokerV1#Connect : info is : %v !", m)
 	// opts
 	opts := MQTT.NewClientOptions()
-	if s.Host == "" || s.Port == "" {
+	if m.Host == "" || m.Port == "" {
 		return broker.ErrConnectParam
 	}
-	opts.AddBroker(s.Host + ":" + s.Port)
+	opts.AddBroker(m.Host + ":" + m.Port)
 	cid := uuid.New().String()
-	if s.CID != "" {
-		cid = s.CID
+	if m.CID != "" {
+		cid = m.CID
 	}
 	opts.SetClientID(cid)
-	opts.SetCleanSession(s.C)
-	if s.Username != "" {
-		opts.SetUsername(s.Username)
+	opts.SetCleanSession(m.C)
+	if m.Username != "" {
+		opts.SetUsername(m.Username)
 	}
-	if s.Password != "" {
-		opts.SetPassword(s.Password)
+	if m.Password != "" {
+		opts.SetPassword(m.Password)
 	}
 	opts.SetAutoReconnect(true)
 	opts.SetMaxReconnectInterval(10 * time.Second)
 
-	opts.OnConnect = s.mqttConnectEvent
-	opts.OnConnectionLost = s.mqttConnectionLostEvent
-	if s.WT != "" && s.WP != "" {
+	opts.OnConnect = m.mqttConnectEvent
+	opts.OnConnectionLost = m.mqttConnectionLostEvent
+	if m.WT != "" && m.WP != "" {
 		opts.WillEnabled = true
-		opts.WillPayload = []byte(s.WP)
-		opts.WillRetained = s.WR
-		opts.WillQos = s.WQ
-		opts.WillTopic = s.WT
+		opts.WillPayload = []byte(m.WP)
+		opts.WillRetained = m.WR
+		opts.WillQos = m.WQ
+		opts.WillTopic = m.WT
 	}
-	t, err := s.getTLSConfig()
+	t, err := tls.GetTLSConfig(m.Insecure, m.CACertFile, m.ClientCertFile, m.ClientKeyFile)
 	if err != nil {
 		return err
 	}
 	opts.TLSConfig = t
 	// NewClient
-	s.c = MQTT.NewClient(opts)
-	if token := s.c.Connect(); token.Wait() && token.Error() != nil {
+	m.c = MQTT.NewClient(opts)
+	if token := m.c.Connect(); token.Wait() && token.Error() != nil {
 		return token.Error()
 	}
 	return nil
 }
 
-func (s *MQTTBrokerV1) getTLSConfig() (t *tls.Config, err error) {
-	t = &tls.Config{
-		InsecureSkipVerify: s.Insecure,
-	}
-	if s.CACertFile != "" {
-		var ca *x509.CertPool
-		data, err := ioutil.ReadFile(s.CACertFile)
-		if err != nil {
-			return nil, err
-		}
-		ca = x509.NewCertPool()
-		if ok := ca.AppendCertsFromPEM(data); !ok {
-			return nil, broker.ErrTLS
-		}
-		t.RootCAs = ca
-	}
-	if s.ClientCertFile != "" && s.ClientKeyFile != "" {
-		crt, err := tls.LoadX509KeyPair(s.ClientCertFile, s.ClientKeyFile)
-		if err != nil {
-			return nil, err
-		}
-		t.Certificates = []tls.Certificate{crt}
-	}
-	return t, nil
-}
-
-func (s *MQTTBrokerV1) Disconnect() error {
-	if s.c == nil {
+func (m *MQTTBrokerV1) Disconnect() error {
+	if m.c == nil {
 		return nil
 	}
-	s.c.Disconnect(250)
+	m.c.Disconnect(250)
 	return nil
 }
 
-func (s *MQTTBrokerV1) String() string {
-	return s.Marshal()
+func (m *MQTTBrokerV1) String() string {
+	return m.Marshal()
 }
 
-func (s *MQTTBrokerV1) Marshal() string {
-	bs, err := json.Marshal(s)
+func (m *MQTTBrokerV1) Marshal() string {
+	bs, err := json.Marshal(m)
 	if err != nil {
 		return err.Error()
 	}
@@ -129,7 +101,7 @@ func (s *MQTTBrokerV1) Marshal() string {
 }
 
 // Publish
-func (s *MQTTBrokerV1) Publish(topic string, msg *broker.Message, opt ...broker.PublishOption) error {
+func (m *MQTTBrokerV1) Publish(topic string, msg *broker.Message, opt ...broker.PublishOption) error {
 	opts := broker.PublishOptions{
 		QOS:      0,
 		Retained: false,
@@ -141,7 +113,7 @@ func (s *MQTTBrokerV1) Publish(topic string, msg *broker.Message, opt ...broker.
 		return broker.ErrQOS
 	}
 	for i := 0; i < 1; i++ {
-		token := s.c.Publish(topic, byte(opts.QOS), opts.Retained, string(msg.Body))
+		token := m.c.Publish(topic, byte(opts.QOS), opts.Retained, string(msg.Body))
 		if !token.Wait() {
 			return token.Error()
 		} else {
@@ -152,7 +124,7 @@ func (s *MQTTBrokerV1) Publish(topic string, msg *broker.Message, opt ...broker.
 }
 
 // Subscribe
-func (s *MQTTBrokerV1) Subscribe(topics []string, callBack broker.CallBack, opt ...broker.SubscribeOption) (broker.Subscriber, error) {
+func (m *MQTTBrokerV1) Subscribe(topics []string, callBack broker.CallBack, opt ...broker.SubscribeOption) (broker.Subscriber, error) {
 	subscriber := &mqttSubscriber{
 		id:       uuid.NewString(),
 		sub:      false,
@@ -162,27 +134,27 @@ func (s *MQTTBrokerV1) Subscribe(topics []string, callBack broker.CallBack, opt 
 		opts: broker.SubscribeOptions{ // default options
 			QOS: 0,
 		},
-		broker: s,
+		broker: m,
 	}
-	s.subscribers.Store(subscriber.id, subscriber)
+	m.subscribers.Store(subscriber.id, subscriber)
 	return subscriber, subscriber.subscribe()
 }
-func (s *MQTTBrokerV1) rmSubscriber(id string) {
+func (m *MQTTBrokerV1) rmSubscriber(id string) {
 
 }
 
-func (s *MQTTBrokerV1) mqttConnectEvent(client MQTT.Client) {
-	s.Logger.Debug("MQTTBrokerV1#mqttConnectEvent : connect connect connect connect !")
-	s.subscribers.Range(func(key, value interface{}) bool { // reconnect
+func (m *MQTTBrokerV1) mqttConnectEvent(client MQTT.Client) {
+	m.Logger.Debug("MQTTBrokerV1#mqttConnectEvent : connect connect connect connect !")
+	m.subscribers.Range(func(key, value interface{}) bool { // reconnect
 		value.(*mqttSubscriber).mqttConnectEvent(client)
 		return true
 	})
 }
 
-func (s *MQTTBrokerV1) mqttConnectionLostEvent(client MQTT.Client, err error) {
-	s.Logger.Debugf("MQTTBrokerV1#mqttConnectionLostEvent : connection lost connection lost connection lost connection lost , err is : %v !", err)
+func (m *MQTTBrokerV1) mqttConnectionLostEvent(client MQTT.Client, err error) {
+	m.Logger.Debugf("MQTTBrokerV1#mqttConnectionLostEvent : connection lost connection lost connection lost connection lost , err is : %v !", err)
 
-	s.subscribers.Range(func(key, value interface{}) bool { // reconnect
+	m.subscribers.Range(func(key, value interface{}) bool { // reconnect
 		value.(*mqttSubscriber).mqttConnectionLostEvent(client, err)
 		return true
 	})
