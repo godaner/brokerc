@@ -1,6 +1,8 @@
 package mqttv1
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
@@ -8,25 +10,30 @@ import (
 	"github.com/godaner/brokerc/log"
 	"github.com/google/uuid"
 	"golang.org/x/net/context"
+	"io/ioutil"
 	"sync"
 	"time"
 )
 
 type MQTTBrokerV1 struct {
 	sync.Once
-	IP          string
-	Port        string
-	Username    string
-	Password    string
-	CID         string
-	WT          string
-	WP          string
-	WR          bool
-	WQ          byte
-	C           bool
-	Logger      log.Logger
-	subscribers *sync.Map
-	c           MQTT.Client
+	Host           string // localhost , ssl://localhost
+	Port           string
+	Username       string
+	Password       string
+	CID            string // client id
+	WT             string // will topic
+	WP             string // will payload
+	WR             bool   // will retain
+	WQ             byte   // will qos
+	C              bool   // clean session , for subscribe
+	CACertFile     string
+	ClientCertFile string
+	ClientKeyFile  string
+	Insecure       bool
+	Logger         log.Logger
+	subscribers    *sync.Map
+	c              MQTT.Client
 }
 
 func (s *MQTTBrokerV1) Connect() error {
@@ -34,10 +41,10 @@ func (s *MQTTBrokerV1) Connect() error {
 	s.Logger.Debugf("MQTTBrokerV1#Connect : info is : %v !", s)
 	// opts
 	opts := MQTT.NewClientOptions()
-	if s.IP == "" || s.Port == "" {
+	if s.Host == "" || s.Port == "" {
 		return broker.ErrConnectParam
 	}
-	opts.AddBroker("tcp://" + s.IP + ":" + s.Port)
+	opts.AddBroker(s.Host + ":" + s.Port)
 	cid := uuid.New().String()
 	if s.CID != "" {
 		cid = s.CID
@@ -62,12 +69,43 @@ func (s *MQTTBrokerV1) Connect() error {
 		opts.WillQos = s.WQ
 		opts.WillTopic = s.WT
 	}
+	t, err := s.getTLSConfig()
+	if err != nil {
+		return err
+	}
+	opts.TLSConfig = t
 	// NewClient
 	s.c = MQTT.NewClient(opts)
 	if token := s.c.Connect(); token.Wait() && token.Error() != nil {
 		return token.Error()
 	}
 	return nil
+}
+
+func (s *MQTTBrokerV1) getTLSConfig() (t *tls.Config, err error) {
+	t = &tls.Config{
+		InsecureSkipVerify: s.Insecure,
+	}
+	if s.CACertFile != "" {
+		var ca *x509.CertPool
+		data, err := ioutil.ReadFile(s.CACertFile)
+		if err != nil {
+			return nil, err
+		}
+		ca = x509.NewCertPool()
+		if ok := ca.AppendCertsFromPEM(data); !ok {
+			return nil, broker.ErrTLS
+		}
+		t.RootCAs = ca
+	}
+	if s.ClientCertFile != "" && s.ClientKeyFile != "" {
+		crt, err := tls.LoadX509KeyPair(s.ClientCertFile, s.ClientKeyFile)
+		if err != nil {
+			return nil, err
+		}
+		t.Certificates = []tls.Certificate{crt}
+	}
+	return t, nil
 }
 
 func (s *MQTTBrokerV1) Disconnect() error {

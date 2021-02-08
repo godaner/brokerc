@@ -14,6 +14,7 @@ var (
 	// ErrConnect           = errors.New("connect err")
 	ErrConnectionIsNotOK = errors.New("connection is not ok")
 	ErrQOS               = errors.New("qos err")
+	ErrTLS               = errors.New("tls err")
 )
 var CurrKafkaBroker Broker
 
