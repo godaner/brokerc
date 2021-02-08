@@ -24,10 +24,10 @@ func main() {
 	app.Version = "1.0.0"
 	app.Commands = []cli.Command{
 		MQTTPublishCommand,
-		// MQTTSubscribeCommand,
+		MQTTSubscribeCommand,
 	}
 	if err := app.Run(os.Args); err != nil {
 		logger.Error(err)
-		os.Exit(1)
+		os.Exit(0)
 	}
 }

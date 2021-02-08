@@ -8,7 +8,6 @@ import (
 	"github.com/godaner/brokerc/log"
 	"github.com/google/uuid"
 	"golang.org/x/net/context"
-	"strings"
 	"sync"
 	"time"
 )
@@ -55,7 +54,6 @@ func (s *MQTTBrokerV1) Connect() error {
 
 	opts.OnConnect = s.mqttConnectEvent
 	opts.OnConnectionLost = s.mqttConnectionLostEvent
-	opts.DefaultPublishHandler = s.mqttRecvEvent
 	if s.WT != "" && s.WP != "" {
 		opts.WillEnabled = true
 		opts.WillPayload = []byte(s.WP)
@@ -66,8 +64,6 @@ func (s *MQTTBrokerV1) Connect() error {
 	// NewClient
 	s.c = MQTT.NewClient(opts)
 	if token := s.c.Connect(); token.Wait() && token.Error() != nil {
-		// s.Logger.Errorf("MQTTBrokerV1#Connect : connect err , err is  %v !", token.Error())
-		// return broker.ErrConnect
 		return token.Error()
 	}
 	return nil
@@ -108,8 +104,6 @@ func (s *MQTTBrokerV1) Publish(topic string, msg *broker.Message, opt ...broker.
 	for i := 0; i < 1; i++ {
 		token := s.c.Publish(topic, byte(opts.QOS), opts.Retained, string(msg.Body))
 		if !token.Wait() {
-			// s.Logger.Errorf("MQTTBrokerV1#Publish : token wait err , err is : %v !", token.Error())
-			// return broker.ErrPublish
 			return token.Error()
 		} else {
 			return nil
@@ -121,13 +115,15 @@ func (s *MQTTBrokerV1) Publish(topic string, msg *broker.Message, opt ...broker.
 // Subscribe
 func (s *MQTTBrokerV1) Subscribe(topics []string, callBack broker.CallBack, opt ...broker.SubscribeOption) (broker.Subscriber, error) {
 	subscriber := &mqttSubscriber{
-		id:             uuid.NewString(),
-		sub:            false,
-		originTopicMap: nil,
-		topics:         topics,
-		callBack:       callBack,
-		opt:            opt,
-		opts:           broker.SubscribeOptions{},
+		id:       uuid.NewString(),
+		sub:      false,
+		topics:   topics,
+		callBack: callBack,
+		opt:      opt,
+		opts: broker.SubscribeOptions{ // default options
+			QOS: 0,
+		},
+		broker: s,
 	}
 	s.subscribers.Store(subscriber.id, subscriber)
 	return subscriber, subscriber.subscribe()
@@ -149,30 +145,6 @@ func (s *MQTTBrokerV1) mqttConnectionLostEvent(client MQTT.Client, err error) {
 
 	s.subscribers.Range(func(key, value interface{}) bool { // reconnect
 		value.(*mqttSubscriber).mqttConnectionLostEvent(client, err)
-		return true
-	})
-}
-
-func (s *MQTTBrokerV1) mqttRecvEvent(client MQTT.Client, msg MQTT.Message) {
-	topic, body := msg.Topic(), msg.Payload()
-	s.subscribers.Range(func(key, value interface{}) bool {
-		sub := value.(*mqttSubscriber)
-		if _, ok := sub.originTopicMap[topic]; ok {
-			if sub.callBack != nil {
-				e := &mqttEvent{
-					topic: topic,
-					cxt:   context.Background(),
-					m: &broker.Message{
-						Header: make(map[string]string),
-						Body:   body,
-					},
-				}
-				err := sub.callBack(e)
-				if err != nil {
-					s.Logger.Errorf("MQTTBrokerV1#mqttRecvEvent : callBack err , err is : %v !", err)
-				}
-			}
-		}
 		return true
 	})
 }
@@ -209,14 +181,13 @@ func (s *mqttSubscriber) String() string {
 type mqttSubscriber struct {
 	sync.Once
 	sync.Mutex
-	id             string
-	sub            bool
-	originTopicMap map[string]struct{}
-	topics         []string
-	callBack       broker.CallBack
-	opt            []broker.SubscribeOption
-	opts           broker.SubscribeOptions
-	broker         *MQTTBrokerV1
+	id       string
+	sub      bool
+	topics   []string
+	callBack broker.CallBack
+	opt      []broker.SubscribeOption
+	opts     broker.SubscribeOptions
+	broker   *MQTTBrokerV1
 }
 
 func (s *mqttSubscriber) mqttConnectEvent(client MQTT.Client) {
@@ -231,7 +202,6 @@ func (s *mqttSubscriber) mqttConnectionLostEvent(client MQTT.Client, err error) 
 
 // subscribe
 func (s *mqttSubscriber) subscribe() error {
-	s.init()
 	s.Lock()
 	defer s.Unlock()
 	c, logger := s.broker.c, s.broker.Logger
@@ -242,17 +212,30 @@ func (s *mqttSubscriber) subscribe() error {
 		return broker.ErrConnectionIsNotOK
 	}
 	// default opt
-	opts := broker.SubscribeOptions{}
-	for _, o := range s.opt {
-		o(&opts)
+	if s.opts.QOS < 0 || s.opts.QOS > 2 {
+		return broker.ErrQOS
 	}
-	s.opts = opts
+	for _, o := range s.opt {
+		o(&s.opts)
+	}
 	logger.Debugf("mqttSubscriber#subscribe : subscribe topics is : %v , opts is : %v !", s.topics, s.opts)
-
 	for _, topic := range s.topics {
-		if token := c.Subscribe(topic, 0, nil); token.Wait() && token.Error() != nil {
-			// logger.Errorf("mqttSubscriber#subscribe : subscriber err , err is : %v !", token.Error())
-			// return broker.ErrSubscribe
+		if token := c.Subscribe(topic, byte(s.opts.QOS), func(client MQTT.Client, message MQTT.Message) {
+			if s.callBack != nil {
+				e := &mqttEvent{
+					topic: topic,
+					cxt:   context.Background(),
+					m: &broker.Message{
+						Header: make(map[string]string),
+						Body:   message.Payload(),
+					},
+				}
+				err := s.callBack(e)
+				if err != nil {
+					logger.Errorf("mqttSubscriber#subscribe : callBack err , err is : %v !", err)
+				}
+			}
+		}); token.Wait() && token.Error() != nil {
 			return token.Error()
 		}
 	}
@@ -262,7 +245,6 @@ func (s *mqttSubscriber) subscribe() error {
 
 // Unsubscribe
 func (s *mqttSubscriber) Unsubscribe() error {
-	s.init()
 	s.Lock()
 	defer s.Unlock()
 	c := s.broker.c
@@ -273,23 +255,4 @@ func (s *mqttSubscriber) Unsubscribe() error {
 	s.sub = false
 	s.broker.rmSubscriber(s.id)
 	return nil
-}
-
-func (s *mqttSubscriber) init() {
-	s.Do(func() {
-		s.originTopicMap = make(map[string]struct{})
-		for _, t := range s.topics {
-			s.originTopicMap[s.getOriginTopic(t)] = struct{}{}
-		}
-	})
-}
-
-// getOriginTopic
-//  $share//sw/status => /sw/status
-func (s *mqttSubscriber) getOriginTopic(topic string) string {
-	if strings.HasPrefix(topic, "$share") {
-		// $share//sw/status
-		topic = strings.Join(strings.Split(topic, "/")[2:], "/")
-	}
-	return topic
 }

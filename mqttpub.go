@@ -83,7 +83,6 @@ var MQTTPublishCommand = cli.Command{
 			Required: false,
 		},
 	},
-
 	Action: func(context *cli.Context) error {
 		h, p, u, P, i, t, d, q, r, m, wt, wp, wr, wq := context.String("h"), context.String("p"), context.String("u"), context.String("P"), context.String("i"), context.String("t"), context.Bool("d"), context.Int("q"), context.Bool("r"), context.String("m"), context.String("will-topic"), context.String("will-payload"), context.Bool("will-retain"), context.Int("will-qos")
 		logger.SetDebug(d)
