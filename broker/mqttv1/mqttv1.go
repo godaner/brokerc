@@ -20,6 +20,10 @@ type MQTTBrokerV1 struct {
 	Username    string
 	Password    string
 	CID         string
+	WT          string
+	WP          string
+	WR          bool
+	WQ          byte
 	Logger      log.Logger
 	subscribers *sync.Map
 	c           MQTT.Client
@@ -52,7 +56,13 @@ func (s *MQTTBrokerV1) Connect() error {
 	opts.OnConnect = s.mqttConnectEvent
 	opts.OnConnectionLost = s.mqttConnectionLostEvent
 	opts.DefaultPublishHandler = s.mqttRecvEvent
-
+	if s.WT != "" && s.WP != "" {
+		opts.WillEnabled = true
+		opts.WillPayload = []byte(s.WP)
+		opts.WillRetained = s.WR
+		opts.WillQos = s.WQ
+		opts.WillTopic = s.WT
+	}
 	// NewClient
 	s.c = MQTT.NewClient(opts)
 	if token := s.c.Connect(); token.Wait() && token.Error() != nil {
@@ -85,8 +95,18 @@ func (s *MQTTBrokerV1) Marshal() string {
 
 // Publish
 func (s *MQTTBrokerV1) Publish(topic string, msg *broker.Message, opt ...broker.PublishOption) error {
+	opts := broker.PublishOptions{
+		QOS:      0,
+		Retained: false,
+	}
+	for _, o := range opt {
+		o(&opts)
+	}
+	if opts.QOS < 0 || opts.QOS > 2 {
+		return broker.ErrQOS
+	}
 	for i := 0; i < 1; i++ {
-		token := s.c.Publish(topic, byte(0), false, string(msg.Body))
+		token := s.c.Publish(topic, byte(opts.QOS), opts.Retained, string(msg.Body))
 		if !token.Wait() {
 			// s.Logger.Errorf("MQTTBrokerV1#Publish : token wait err , err is : %v !", token.Error())
 			// return broker.ErrPublish

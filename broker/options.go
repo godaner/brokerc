@@ -9,6 +9,8 @@ type PublishOptions struct {
 	ExchangeName string
 	ExchangeType string
 	Context      context.Context
+	QOS          int
+	Retained     bool
 }
 
 func (p *PublishOptions) String() string {
@@ -28,9 +30,8 @@ type SubscribeOptions struct {
 	Queue        string
 	ExchangeName string
 	ExchangeType string
-	// Deprecated
-	CID     string // client id
-	Context context.Context
+	QOS          int
+	Context      context.Context
 }
 
 func (s *SubscribeOptions) String() string {
@@ -49,6 +50,13 @@ type SubscribeOption func(*SubscribeOptions)
 type PublishOption func(*PublishOptions)
 
 // Set SubscribeOption
+// SetSubQOS
+func SetSubQOS(qos int) SubscribeOption {
+	return func(o *SubscribeOptions) {
+		o.QOS = qos
+	}
+}
+
 // SetSubAutoAck
 func SetSubAutoAck(autoAck bool) SubscribeOption {
 	return func(o *SubscribeOptions) {
@@ -92,15 +100,23 @@ func SetSubExchangeName(en string) SubscribeOption {
 }
 
 // SetSubCID
-// Deprecated
-//  过时了,目前只有amqp的实现用来设置参数consumer
-func SetSubCID(cid string) SubscribeOption {
-	return func(o *SubscribeOptions) {
-		o.CID = cid
+
+// Set PublishOption
+// SetPubRetained
+func SetPubRetained(r bool) PublishOption {
+	return func(o *PublishOptions) {
+		o.Retained = r
 	}
 }
 
 // Set PublishOption
+// SetPubQOS
+func SetPubQOS(qos int) PublishOption {
+	return func(o *PublishOptions) {
+		o.QOS = qos
+	}
+}
+
 // SetPubContext
 func SetPubContext(cxt context.Context) PublishOption {
 	return func(o *PublishOptions) {
