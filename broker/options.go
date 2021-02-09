@@ -6,11 +6,13 @@ import (
 )
 
 type PublishOptions struct {
-	ExchangeName string
-	ExchangeType string
-	Context      context.Context
-	QOS          int
-	Retained     bool
+	ExchangeName     string
+	ExchangeType     string
+	ExchangeAD       bool // exchange auto delete
+	ExchangeDuration bool // exchange duration
+	Context          context.Context
+	QOS              int
+	Retained         bool
 }
 
 func (p *PublishOptions) String() string {
@@ -25,14 +27,16 @@ func (p *PublishOptions) Marshal() string {
 }
 
 type SubscribeOptions struct {
-	AutoAck      bool
-	AutoDel      bool
-	Duration     bool
-	Queue        string
-	ExchangeName string
-	ExchangeType string
-	QOS          int
-	Context      context.Context
+	AutoAck          bool
+	AutoDel          bool
+	Duration         bool
+	Queue            string
+	ExchangeName     string
+	ExchangeType     string
+	ExchangeAD       bool // exchange auto delete
+	ExchangeDuration bool // exchange duration
+	QOS              int
+	Context          context.Context
 }
 
 func (s *SubscribeOptions) String() string {
@@ -107,7 +111,19 @@ func SetSubExchangeName(en string) SubscribeOption {
 	}
 }
 
-// SetSubCID
+// SetSubExchangeAD
+func SetSubExchangeAD(ad bool) SubscribeOption {
+	return func(o *SubscribeOptions) {
+		o.ExchangeAD = ad
+	}
+}
+
+// SetSubExchangeDuration
+func SetSubExchangeDuration(duration bool) SubscribeOption {
+	return func(o *SubscribeOptions) {
+		o.ExchangeDuration = duration
+	}
+}
 
 // Set PublishOption
 // SetPubRetained
@@ -143,5 +159,19 @@ func SetPubExchangeName(en string) PublishOption {
 func SetPubExchangeType(et string) PublishOption {
 	return func(o *PublishOptions) {
 		o.ExchangeType = et
+	}
+}
+
+// SetPubExchangeAD
+func SetPubExchangeAD(ad bool) PublishOption {
+	return func(o *PublishOptions) {
+		o.ExchangeAD = ad
+	}
+}
+
+// SetPubExchangeDuration
+func SetPubExchangeDuration(duration bool) PublishOption {
+	return func(o *PublishOptions) {
+		o.ExchangeDuration = duration
 	}
 }

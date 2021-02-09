@@ -73,13 +73,21 @@ var AMQPSubscribeCommand = cli.Command{
 			Name:     "exchange",
 			Usage:    "exchange name.",
 			Required: false,
-			Value:    "",
 		},
 		cli.StringFlag{
 			Name:     "exchange-type",
 			Usage:    "exchange type.",
 			Required: false,
-			Value:    "direct",
+		},
+		cli.BoolFlag{
+			Name:     "exchange-ad",
+			Usage:    "exchange ad.",
+			Required: false,
+		},
+		cli.BoolFlag{
+			Name:     "exchange-duration",
+			Usage:    "exchange duration.",
+			Required: false,
 		},
 		cli.StringFlag{
 			Name:     "queue",
@@ -98,7 +106,7 @@ var AMQPSubscribeCommand = cli.Command{
 		},
 	},
 	Action: func(context *cli.Context) error {
-		h, p, u, P, i, t, d, cafile, cert, key, insecure, exchange, exchangeType, queue, queueAD, queueDuration :=
+		h, p, u, P, i, t, d, cafile, cert, key, insecure, exchange, exchangeType, exchangeAD, exchangeDuration, queue, queueAD, queueDuration :=
 			context.String("h"),
 			context.String("p"),
 			context.String("u"),
@@ -112,6 +120,8 @@ var AMQPSubscribeCommand = cli.Command{
 			context.Bool("insecure"),
 			context.String("exchange"),
 			context.String("exchange-type"),
+			context.Bool("exchange-ad"),
+			context.Bool("exchange-duration"),
 			context.String("queue"),
 			context.Bool("queue-ad"),
 			context.Bool("queue-duration")
@@ -132,8 +142,6 @@ var AMQPSubscribeCommand = cli.Command{
 			ClientCertFile: cert,
 			ClientKeyFile:  key,
 			Insecure:       insecure,
-			Exchange:       exchange,
-			ExchangeType:   exchangeType,
 			Logger:         logger,
 		}
 		err := b.Connect()
@@ -144,7 +152,14 @@ var AMQPSubscribeCommand = cli.Command{
 		s, err := b.Subscribe([]string{t}, func(event broker.Event) error {
 			logger.Infof("SUBSCRIBE=> h:%v, p:%v, u:%v, P:%v, i:%v, t:%v, exchange:%v, exchangeType:%v, queue:%v, m:%v !", h, p, u, P, i, t, exchange, exchangeType, queue, string(event.Message().Body))
 			return nil
-		}, broker.SetSubQueue(queue), broker.SetSubAutoAck(true), broker.SetSubAutoDel(queueAD), broker.SetSubDuration(queueDuration))
+		}, broker.SetSubQueue(queue),
+			broker.SetSubAutoAck(true),
+			broker.SetSubAutoDel(queueAD),
+			broker.SetSubDuration(queueDuration),
+			broker.SetSubExchangeName(exchange),
+			broker.SetSubExchangeType(exchangeType),
+			broker.SetSubExchangeDuration(exchangeDuration),
+			broker.SetSubExchangeAD(exchangeAD))
 		defer s.Unsubscribe()
 		if err != nil {
 			return err

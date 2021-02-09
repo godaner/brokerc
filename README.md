@@ -69,6 +69,9 @@ Or get it from the released version:
     -p "5672" \
     -u "system" \
     -P "manager" \
-    -i "amqpsub" \
+    -i "amqpsubclient" \
     --queue "amqpqueue" \
-    --queue-ad
+    --exchange "amqpexchange" \
+    --exchange-type "direct" \
+    --queue-ad \
+    --exchange-ad

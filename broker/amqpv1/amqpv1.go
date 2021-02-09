@@ -26,8 +26,10 @@ type AMQPBrokerV1 struct {
 	ClientCertFile string
 	ClientKeyFile  string
 	Insecure       bool
-	Exchange       string
-	ExchangeType   string
+	// Exchange         string
+	// ExchangeType     string
+	// ExchangeAD       bool // exchange auto delete
+	// ExchangeDuration bool // exchange duration
 	Logger         log.Logger
 	conn           *AMQP.Connection
 	publisherCh    *AMQP.Channel // just for publisher
@@ -105,9 +107,7 @@ func (a *AMQPBrokerV1) Publish(topic string, msg *broker.Message, opt ...broker.
 		return broker.ErrConnectionIsNotOK
 	}
 	// default opt
-	opts := broker.PublishOptions{
-		ExchangeName: a.Exchange,
-	}
+	opts := broker.PublishOptions{}
 	for _, o := range opt {
 		o(&opts)
 	}
@@ -126,13 +126,13 @@ func (a *AMQPBrokerV1) Publish(topic string, msg *broker.Message, opt ...broker.
 	if opts.ExchangeName != "" && !ok && !dec {
 		a.Logger.Debugf("AMQPBrokerV1#Publish : dec exchange , name is : %v , type is : %v !", opts.ExchangeName, opts.ExchangeType)
 		err = a.publisherCh.ExchangeDeclare(
-			opts.ExchangeName, // name
-			opts.ExchangeType, // type
-			false,             // durable
-			false,             // auto-deleted
-			false,             // internal
-			false,             // no-wait
-			nil,               // arguments
+			opts.ExchangeName,     // name
+			opts.ExchangeType,     // type
+			opts.ExchangeDuration, // durable
+			opts.ExchangeAD,       // auto-deleted
+			false,                 // internal
+			false,                 // no-wait
+			nil,                   // arguments
 		)
 		if err != nil {
 			return err
@@ -206,9 +206,7 @@ func (s *amqpSubscriber) subscribe() (err error) {
 	topics := s.topics
 	// default opt
 	opts := broker.SubscribeOptions{
-		AutoAck:      true,
-		ExchangeName: this.Exchange,
-		ExchangeType: this.ExchangeType,
+		AutoAck: true,
 	}
 	for _, o := range opt {
 		o(&opts)
@@ -221,17 +219,19 @@ func (s *amqpSubscriber) subscribe() (err error) {
 	if err != nil {
 		return err
 	}
-	err = s.ch.ExchangeDeclare(
-		s.opts.ExchangeName, // name
-		s.opts.ExchangeType, // type
-		false,               // durable
-		false,               // auto-deleted
-		false,               // internal
-		false,               // no-wait
-		nil,                 // arguments
-	)
-	if err != nil {
-		return err
+	if s.opts.ExchangeName != "" {
+		err = s.ch.ExchangeDeclare(
+			s.opts.ExchangeName,     // name
+			s.opts.ExchangeType,     // type
+			s.opts.ExchangeDuration, // durable
+			s.opts.ExchangeAD,       // auto-deleted
+			false,                   // internal
+			false,                   // no-wait
+			nil,                     // arguments
+		)
+		if err != nil {
+			return err
+		}
 	}
 	// queue
 	q, err := s.ch.QueueDeclare(
@@ -241,18 +241,6 @@ func (s *amqpSubscriber) subscribe() (err error) {
 		false,           // exclusive
 		false,           // no-wait
 		nil,             // arguments
-	)
-	if err != nil {
-		return err
-	}
-	msgs, err := s.ch.Consume(
-		q.Name,         // queue
-		s.broker.CID,   // consumer
-		s.opts.AutoAck, // auto-ack
-		false,          // exclusive
-		false,          // no-local
-		false,          // no-wait
-		nil,            // args
 	)
 	if err != nil {
 		return err
@@ -269,6 +257,18 @@ func (s *amqpSubscriber) subscribe() (err error) {
 				return err
 			}
 		}
+	}
+	msgs, err := s.ch.Consume(
+		q.Name,         // queue
+		s.broker.CID,   // consumer
+		s.opts.AutoAck, // auto-ack
+		false,          // exclusive
+		false,          // no-local
+		false,          // no-wait
+		nil,            // args
+	)
+	if err != nil {
+		return err
 	}
 	go func() {
 		for msg := range msgs {
@@ -299,12 +299,18 @@ func (s *amqpSubscriber) subscribe() (err error) {
 
 func (a *AMQPBrokerV1) listenClose(c chan *AMQP.Error) {
 	for err := range c {
-		a.Logger.Errorf("AMQPBrokerV1#listenClose : conn close error : is : %v , reason is :%v , code is : %v , code is : %v !", err.Error(), err.Reason, err.Code)
+		a.Logger.Errorf("AMQPBrokerV1#listenClose : conn close error , err is : %v , reason is :%v , code is : %v , code is : %v !", err.Error(), err.Reason, err.Code)
 	}
 	a.Logger.Debug("AMQPBrokerV1#listenClose : we will start reconnect !")
-	for ; ; {
+	for {
 		err := a.Connect()
-		if err != nil {
+		if err == nil {
+			for _, s := range a.subscribers {
+				err := s.subscribe()
+				if err != nil {
+					a.Logger.Errorf("AMQPBrokerV1#listenClose : resubscribe err , err is : %v !", err.Error())
+				}
+			}
 			break
 		}
 		<-time.After(reconnectInterval)
