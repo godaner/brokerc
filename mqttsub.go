@@ -1,19 +1,17 @@
 package main
 
 import (
-	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/godaner/brokerc/broker"
 	"github.com/godaner/brokerc/broker/mqttv1"
 	"github.com/urfave/cli"
-	"log"
 	"os"
 	"os/signal"
 )
 
 var MQTTSubscribeCommand = cli.Command{
 	Name:      "mqttsub",
-	Usage:     "mqtt subscribe message",
-	UsageText: "Usage: brokerc mqttsub [options...] <uri>",
+	Usage:     "subscribe mqtt message",
+	UsageText: "Usage: brokerc mqttsub [options...] <uri>, uri arg format: mqtt[s]://[username][:password]@host.domain[:port]",
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:     "t",
@@ -98,12 +96,6 @@ var MQTTSubscribeCommand = cli.Command{
 			context.String("key"),
 			context.Bool("insecure")
 		logger.SetDebug(d)
-		if d {
-			mqtt.CRITICAL = log.New(os.Stdout, "MQTT_CRITICAL ", 0)
-			mqtt.ERROR = log.New(os.Stdout, "MQTT_ERROR ", 0)
-			mqtt.WARN = log.New(os.Stdout, "MQTT_WARN ", 0)
-			mqtt.DEBUG = log.New(os.Stdout, "MQTT_DEBUG ", 0)
-		}
 		b := mqttv1.MQTTBrokerV1{
 			URI:            uri,
 			CID:            i,
@@ -117,6 +109,7 @@ var MQTTSubscribeCommand = cli.Command{
 			ClientKeyFile:  key,
 			Insecure:       insecure,
 			Logger:         logger,
+			Debug:          d,
 		}
 		err := b.Connect()
 		if err != nil {

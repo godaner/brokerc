@@ -10,8 +10,8 @@ import (
 
 var AMQPSubscribeCommand = cli.Command{
 	Name:      "amqpsub",
-	Usage:     "amqp subscribe message",
-	UsageText: "Usage: brokerc amqpsub [options...] <uri>",
+	Usage:     "subscribe amqp message",
+	UsageText: "Usage: brokerc amqpsub [options...] <uri>, uri arg format: amqp[s]://[username][:password]@host.domain[:port][vhost]",
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:     "t",
@@ -102,12 +102,6 @@ var AMQPSubscribeCommand = cli.Command{
 			context.Bool("queue-ad"),
 			context.Bool("queue-duration")
 		logger.SetDebug(d)
-		// if d {
-		// 	amqp.CRITICAL = log.New(os.Stdout, "AMQP_CRITICAL ", 0)
-		// 	amqp.ERROR = log.New(os.Stdout, "AMQP_ERROR ", 0)
-		// 	amqp.WARN = log.New(os.Stdout, "AMQP_WARN ", 0)
-		// 	amqp.DEBUG = log.New(os.Stdout, "AMQP_DEBUG ", 0)
-		// }
 		b := amqpv1.AMQPBrokerV1{
 			URI:            uri,
 			CID:            i,

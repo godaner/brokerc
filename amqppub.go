@@ -2,14 +2,14 @@ package main
 
 import (
 	"github.com/godaner/brokerc/broker"
-	"github.com/godaner/brokerc/broker/mqttv1"
+	"github.com/godaner/brokerc/broker/amqpv1"
 	"github.com/urfave/cli"
 )
 
-var MQTTPublishCommand = cli.Command{
-	Name:      "mqttpub",
-	Usage:     "publish mqtt message",
-	UsageText: "Usage: brokerc mqttpub [options...] <uri>, uri arg format: mqtt[s]://[username][:password]@host.domain[:port]",
+var AMQPPublishCommand = cli.Command{
+	Name:      "amqppub",
+	Usage:     "publish amqp message",
+	UsageText: "Usage: brokerc amqppub [options...] <uri>, uri arg format: amqp[s]://[username][:password]@host.domain[:port][vhost]",
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:     "t",
@@ -29,16 +29,6 @@ var MQTTPublishCommand = cli.Command{
 		cli.BoolFlag{
 			Name:     "d",
 			Usage:    "debug.",
-			Required: false,
-		},
-		cli.IntFlag{
-			Name:     "q",
-			Usage:    "quality of service level to use for all messages. Defaults to 0.",
-			Required: false,
-		},
-		cli.BoolFlag{
-			Name:     "r",
-			Usage:    "message should be retained.",
 			Required: false,
 		},
 		cli.StringFlag{
@@ -62,59 +52,50 @@ var MQTTPublishCommand = cli.Command{
 			Required: false,
 		},
 		cli.StringFlag{
-			Name:     "will-payload",
-			Usage:    "payload for the client Will, which is sent by the broker in case of unexpected disconnection. If not given and will-topic is set, a zero length message will be sent.",
+			Name:     "exchange",
+			Usage:    "exchange name.",
 			Required: false,
 		},
 		cli.StringFlag{
-			Name:     "will-topic",
-			Usage:    "the topic on which to publish the client Will.",
+			Name:     "exchange-type",
+			Usage:    "exchange type.",
 			Required: false,
 		},
 		cli.BoolFlag{
-			Name:     "will-retain",
-			Usage:    "if given, make the client Will retained.",
+			Name:     "exchange-ad",
+			Usage:    "exchange ad.",
 			Required: false,
 		},
-		cli.StringFlag{
-			Name:     "will-qos",
-			Usage:    "QoS level for the client Will.",
+		cli.BoolFlag{
+			Name:     "exchange-duration",
+			Usage:    "exchange duration.",
 			Required: false,
 		},
 	},
 	Action: func(context *cli.Context) error {
 		uri := context.Args().Get(0)
-		i, t, d, q, r, m, wt, wp, wr, wq, cafile, cert, key, insecure :=
+		i, m, t, d, cafile, cert, key, insecure, exchange, exchangeType, exchangeAD, exchangeDuration :=
 			context.String("i"),
+			context.String("m"),
 			context.String("t"),
 			context.Bool("d"),
-			context.Int("q"),
-			context.Bool("r"),
-			context.String("m"),
-			context.String("will-topic"),
-			context.String("will-payload"),
-			context.Bool("will-retain"),
-			context.Int("will-qos"),
 			context.String("cafile"),
 			context.String("cert"),
 			context.String("key"),
-			context.Bool("insecure")
+			context.Bool("insecure"),
+			context.String("exchange"),
+			context.String("exchange-type"),
+			context.Bool("exchange-ad"),
+			context.Bool("exchange-duration")
 		logger.SetDebug(d)
-
-		b := mqttv1.MQTTBrokerV1{
+		b := amqpv1.AMQPBrokerV1{
 			URI:            uri,
 			CID:            i,
-			WT:             wt,
-			WP:             wp,
-			WR:             wr,
-			WQ:             byte(wq),
-			C:              false,
 			CACertFile:     cafile,
 			ClientCertFile: cert,
 			ClientKeyFile:  key,
 			Insecure:       insecure,
 			Logger:         logger,
-			Debug:          d,
 		}
 		err := b.Connect()
 		if err != nil {
@@ -124,11 +105,14 @@ var MQTTPublishCommand = cli.Command{
 		err = b.Publish(t, &broker.Message{
 			Header: nil,
 			Body:   []byte(m),
-		}, broker.SetPubQOS(q), broker.SetPubRetained(r))
+		}, broker.SetPubExchangeName(exchange),
+			broker.SetPubExchangeType(exchangeType),
+			broker.SetPubExchangeDuration(exchangeDuration),
+			broker.SetPubExchangeAD(exchangeAD))
 		if err != nil {
 			return err
 		}
-		logger.Infof("PUBLISH=> uri:%v, i:%v, t:%v, q:%v, r:%v, m:%v !", uri, i, t, q, r, m)
+		logger.Infof("PUBLISH=> uri:%v, i:%v, t:%v, m:%v !", uri, i, t, m)
 		return nil
 	},
 }

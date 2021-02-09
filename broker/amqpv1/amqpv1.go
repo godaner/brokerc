@@ -17,7 +17,8 @@ const (
 )
 
 type AMQPBrokerV1 struct {
-	URI            string // amqp[s]://[username][:password]@host.domain[:port]
+	sync.Once
+	URI            string // amqp[s]://[username][:password]@host.domain[:port][vhost]
 	CID            string // client id
 	CACertFile     string
 	ClientCertFile string
@@ -28,7 +29,6 @@ type AMQPBrokerV1 struct {
 	publisherCh    *AMQP.Channel // just for publisher
 	once           sync.Once
 	subscribers    []*amqpSubscriber
-	pubDecExchange *sync.Map
 }
 
 func (a *AMQPBrokerV1) String() string {
@@ -44,11 +44,10 @@ func (a *AMQPBrokerV1) Marshal() string {
 }
 
 func (a *AMQPBrokerV1) Connect() error {
-	if a.conn != nil && !a.conn.IsClosed() {
-		return broker.ErrConnectionIsNotOK
-	}
+	a.Do(func() {
+		a.subscribers = make([]*amqpSubscriber, 0)
+	})
 	a.Logger.Debugf("AMQPBrokerV1#connect : info is : %v !", a)
-
 	t, err := tls.GetTLSConfig(a.Insecure, a.CACertFile, a.ClientCertFile, a.ClientKeyFile)
 	if err != nil {
 		return err
@@ -109,9 +108,7 @@ func (a *AMQPBrokerV1) Publish(topic string, msg *broker.Message, opt ...broker.
 	}
 
 	// exchange
-	decInf, ok := a.pubDecExchange.Load(opts.ExchangeName)
-	dec, _ := decInf.(bool)
-	if opts.ExchangeName != "" && opts.ExchangeType != "" && !ok && !dec {
+	if opts.ExchangeName != "" && opts.ExchangeType != "" {
 		a.Logger.Debugf("AMQPBrokerV1#Publish : dec exchange , name is : %v , type is : %v !", opts.ExchangeName, opts.ExchangeType)
 		err = a.publisherCh.ExchangeDeclare(
 			opts.ExchangeName,     // name
@@ -125,7 +122,6 @@ func (a *AMQPBrokerV1) Publish(topic string, msg *broker.Message, opt ...broker.
 		if err != nil {
 			return err
 		}
-		a.pubDecExchange.Store(opts.ExchangeName, true)
 	}
 
 	// Publish

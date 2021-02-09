@@ -1,4 +1,4 @@
-brokerc is a cross platform publish subscribe client, including mqtt client, amqp client.
+brokerc is a cross platform publish subscribe client, including mqtt client, amqp client, http client.
 # Install
 To install the library, follow the classical:
 
@@ -52,6 +52,12 @@ Or get it from the released version:
     -key /opt/OmniVista_2500_NMS/data/cert/wma/wma.key
 ## AMQP
 #### Publish
+    ./brokerclinux amqppub \
+    amqp://system:manager@192.168.2.60:5672 \
+    -t "/a/b" \
+    -i "amqpsubclient" \
+    --exchange "amqpexchange" \
+    -m 'hey man!'
 #### Subscribe
     ./brokerclinux amqpsub \
     amqp://system:manager@192.168.2.60:5672 \
