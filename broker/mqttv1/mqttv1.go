@@ -16,6 +16,7 @@ import (
 )
 
 type MQTTBrokerV1 struct {
+	sync.Once
 	URI            string // mqtt[s]://[username][:password]@host.domain[:port]
 	CID            string // client id
 	WT             string // will topic
@@ -34,12 +35,15 @@ type MQTTBrokerV1 struct {
 }
 
 func (m *MQTTBrokerV1) Connect() error {
-	if m.Debug {
-		MQTT.CRITICAL = log.New(os.Stdout, "MQTT_CRITICAL ", 0)
-		MQTT.ERROR = log.New(os.Stdout, "MQTT_ERROR ", 0)
-		MQTT.WARN = log.New(os.Stdout, "MQTT_WARN ", 0)
-		MQTT.DEBUG = log.New(os.Stdout, "MQTT_DEBUG ", 0)
-	}
+	m.Do(func() {
+		m.subscribers = &sync.Map{}
+		if m.Debug {
+			MQTT.CRITICAL = log.New(os.Stdout, "MQTT_CRITICAL ", 0)
+			MQTT.ERROR = log.New(os.Stdout, "MQTT_ERROR ", 0)
+			MQTT.WARN = log.New(os.Stdout, "MQTT_WARN ", 0)
+			MQTT.DEBUG = log.New(os.Stdout, "MQTT_DEBUG ", 0)
+		}
+	})
 	m.Logger.Debugf("MQTTBrokerV1#Connect : info is : %v !", m)
 	// opts
 	opts := MQTT.NewClientOptions()
