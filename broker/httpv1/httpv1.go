@@ -17,7 +17,7 @@ import (
 type HTTPBrokerV1 struct {
 	c               *http.Client
 	s               *http.Server
-	PublishCallBack func(topic string, resp *http.Response) error
+	PublishCallBack func(topic string, resp *http.Response) error `json:"-"`
 	CACertFile      string
 	CertFile        string
 	KeyFile         string
@@ -38,6 +38,7 @@ func (h *HTTPBrokerV1) Marshal() string {
 }
 
 func (h *HTTPBrokerV1) Publish(topic string, msg *broker.Message, opt ...broker.PublishOption) error {
+	h.Logger.Debugf("HTTPBrokerV1#Publish : info is : %v , topic is : %v , msg is : %v !", h, topic, msg)
 	ss := strings.SplitN(topic, "#", 2)
 	if len(ss) != 2 {
 		return broker.ErrPublish
@@ -56,7 +57,7 @@ func (h *HTTPBrokerV1) Publish(topic string, msg *broker.Message, opt ...broker.
 		Transport: &http.Transport{
 			TLSClientConfig: ct,
 		},
-		Timeout: 10 * time.Second,
+		Timeout: 1 * time.Hour,
 	}
 	// do
 	body := ioutil.NopCloser(bytes.NewReader(msg.Body))
@@ -78,6 +79,7 @@ func (h *HTTPBrokerV1) Publish(topic string, msg *broker.Message, opt ...broker.
 	return nil
 }
 func (h *HTTPBrokerV1) Subscribe(topics []string, callBack broker.CallBack, opt ...broker.SubscribeOption) (broker.Subscriber, error) {
+	h.Logger.Debugf("HTTPBrokerV1#Subscribe : info is : %v , topics is : %v !", h, topics)
 	addr := ""
 	if len(topics) >= 1 {
 		addr = topics[0]

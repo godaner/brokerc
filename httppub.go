@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/godaner/brokerc/broker"
 	"github.com/godaner/brokerc/broker/httpv1"
 	"github.com/urfave/cli"
+	"io/ioutil"
 	"net/http"
 	"strings"
 )
@@ -28,6 +30,11 @@ var HTTPPublishCommand = cli.Command{
 		cli.StringFlag{
 			Name:     "m",
 			Usage:    "message.",
+			Required: true,
+		},
+		cli.StringFlag{
+			Name:     "o",
+			Usage:    "write to file instead of stdout.",
 			Required: true,
 		},
 		cli.BoolFlag{
@@ -78,11 +85,12 @@ var HTTPPublishCommand = cli.Command{
 	},
 	Action: func(context *cli.Context) error {
 		uri := context.Args().Get(0)
-		X, H, d, m, cafile, cert, key, insecure :=
+		X, H, d, m, o, cafile, cert, key, insecure :=
 			context.String("X"),
 			context.String("H"),
 			context.Bool("d"),
 			context.String("m"),
+			context.String("o"),
 			context.String("cafile"),
 			context.String("cert"),
 			context.String("key"),
@@ -91,7 +99,23 @@ var HTTPPublishCommand = cli.Command{
 
 		b := httpv1.HTTPBrokerV1{
 			PublishCallBack: func(topic string, resp *http.Response) error {
-				// todo
+				bs, err := ioutil.ReadAll(resp.Body)
+				if err != nil {
+					logger.Errorf("PUBLISH RECV ERR=> err:%v !", err)
+					return nil
+				}
+				defer resp.Body.Close()
+				if o != "" {
+					err = ioutil.WriteFile(o, bs, 0755)
+					if err != nil {
+						logger.Errorf("PUBLISH RECV ERR=> err:%v !", err)
+						return nil
+					}
+				} else {
+					hs, _ := json.Marshal(resp.Header)
+					logger.Infof("PUBLISH RECV=> uri:%v, X:%v, resp:%v !", uri, X, string(bs))
+					logger.Debugf("PUBLISH RECV=> uri:%v, H:%v !", uri, string(hs))
+				}
 				return nil
 			},
 			CACertFile: cafile,
@@ -105,6 +129,8 @@ var HTTPPublishCommand = cli.Command{
 			return err
 		}
 		defer b.Disconnect()
+		logger.Infof("PUBLISH=> uri:%v, X:%v, m:%v !", uri, X, m)
+		logger.Debugf("PUBLISH=> uri:%v, H:%v !", uri, H)
 		err = b.Publish(fmt.Sprintf("%v#%v", X, uri), &broker.Message{
 			Header: parseH(H),
 			Body:   []byte(m),
@@ -112,8 +138,6 @@ var HTTPPublishCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-		logger.Infof("PUBLISH=> uri:%v, X:%v, m:%v !", uri, X, m)
-		logger.Debugf("PUBLISH=> uri:%v, H:%v !", uri, H)
 		return nil
 	},
 }
