@@ -102,19 +102,19 @@ var MQTTPublishCommand = cli.Command{
 		logger.SetDebug(d)
 
 		b := mqttv1.MQTTBrokerV1{
-			URI:            uri,
-			CID:            i,
-			WT:             wt,
-			WP:             wp,
-			WR:             wr,
-			WQ:             byte(wq),
-			C:              false,
-			CACertFile:     cafile,
-			ClientCertFile: cert,
-			ClientKeyFile:  key,
-			Insecure:       insecure,
-			Logger:         logger,
-			Debug:          d,
+			URI:        uri,
+			CID:        i,
+			WT:         wt,
+			WP:         wp,
+			WR:         wr,
+			WQ:         byte(wq),
+			C:          false,
+			CACertFile: cafile,
+			CertFile:   cert,
+			KeyFile:    key,
+			Insecure:   insecure,
+			Logger:     logger,
+			Debug:      d,
 		}
 		err := b.Connect()
 		if err != nil {

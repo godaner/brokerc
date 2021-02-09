@@ -103,13 +103,13 @@ var AMQPSubscribeCommand = cli.Command{
 			context.Bool("queue-duration")
 		logger.SetDebug(d)
 		b := amqpv1.AMQPBrokerV1{
-			URI:            uri,
-			CID:            i,
-			CACertFile:     cafile,
-			ClientCertFile: cert,
-			ClientKeyFile:  key,
-			Insecure:       insecure,
-			Logger:         logger,
+			URI:        uri,
+			CID:        i,
+			CACertFile: cafile,
+			CertFile:   cert,
+			KeyFile:    key,
+			Insecure:   insecure,
+			Logger:     logger,
 		}
 		err := b.Connect()
 		if err != nil {
@@ -127,10 +127,10 @@ var AMQPSubscribeCommand = cli.Command{
 			broker.SetSubExchangeType(exchangeType),
 			broker.SetSubExchangeDuration(exchangeDuration),
 			broker.SetSubExchangeAD(exchangeAD))
-		defer s.Unsubscribe()
 		if err != nil {
 			return err
 		}
+		defer s.Unsubscribe()
 		sig := make(chan os.Signal, 1)
 		signal.Notify(sig, os.Interrupt, os.Kill)
 		<-sig

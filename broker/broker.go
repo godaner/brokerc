@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	// ErrPublish           = errors.New("publish err")
+	ErrPublish = errors.New("publish err")
 	// ErrSubscribe         = errors.New("subscribe err")
 	// ErrConnectParam = errors.New("connect param err")
 	// ErrConnect           = errors.New("connect err")
@@ -18,7 +18,7 @@ var (
 
 // Message Publish or Subscribe Message
 type Message struct {
-	Header map[string]string
+	Header map[string][]string
 	Body   []byte
 }
 

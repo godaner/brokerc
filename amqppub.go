@@ -89,13 +89,13 @@ var AMQPPublishCommand = cli.Command{
 			context.Bool("exchange-duration")
 		logger.SetDebug(d)
 		b := amqpv1.AMQPBrokerV1{
-			URI:            uri,
-			CID:            i,
-			CACertFile:     cafile,
-			ClientCertFile: cert,
-			ClientKeyFile:  key,
-			Insecure:       insecure,
-			Logger:         logger,
+			URI:        uri,
+			CID:        i,
+			CACertFile: cafile,
+			CertFile:   cert,
+			KeyFile:    key,
+			Insecure:   insecure,
+			Logger:     logger,
 		}
 		err := b.Connect()
 		if err != nil {

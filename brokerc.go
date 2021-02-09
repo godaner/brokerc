@@ -27,6 +27,8 @@ func main() {
 		MQTTSubscribeCommand,
 		AMQPSubscribeCommand,
 		AMQPPublishCommand,
+		HTTPPublishCommand,
+		HTTPSubscribeCommand,
 	}
 	if err := app.Run(os.Args); err != nil {
 		logger.Error(err)

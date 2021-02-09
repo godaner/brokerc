@@ -97,19 +97,19 @@ var MQTTSubscribeCommand = cli.Command{
 			context.Bool("insecure")
 		logger.SetDebug(d)
 		b := mqttv1.MQTTBrokerV1{
-			URI:            uri,
-			CID:            i,
-			WT:             wt,
-			WP:             wp,
-			WR:             wr,
-			WQ:             byte(wq),
-			C:              c,
-			CACertFile:     cafile,
-			ClientCertFile: cert,
-			ClientKeyFile:  key,
-			Insecure:       insecure,
-			Logger:         logger,
-			Debug:          d,
+			URI:        uri,
+			CID:        i,
+			WT:         wt,
+			WP:         wp,
+			WR:         wr,
+			WQ:         byte(wq),
+			C:          c,
+			CACertFile: cafile,
+			CertFile:   cert,
+			KeyFile:    key,
+			Insecure:   insecure,
+			Logger:     logger,
+			Debug:      d,
 		}
 		err := b.Connect()
 		if err != nil {
@@ -120,10 +120,10 @@ var MQTTSubscribeCommand = cli.Command{
 			logger.Infof("SUBSCRIBE=> uri:%v, i:%v, t:%v, q:%v, c:%v, m:%v !", uri, i, t, q, c, string(event.Message().Body))
 			return nil
 		}, broker.SetSubQOS(q))
-		defer s.Unsubscribe()
 		if err != nil {
 			return err
 		}
+		defer s.Unsubscribe()
 		sig := make(chan os.Signal, 1)
 		signal.Notify(sig, os.Interrupt, os.Kill)
 		<-sig

@@ -18,17 +18,17 @@ const (
 
 type AMQPBrokerV1 struct {
 	sync.Once
-	URI            string // amqp[s]://[username][:password]@host.domain[:port][vhost]
-	CID            string // client id
-	CACertFile     string
-	ClientCertFile string
-	ClientKeyFile  string
-	Insecure       bool
-	Logger         log.Logger
-	conn           *AMQP.Connection
-	publisherCh    *AMQP.Channel // just for publisher
-	once           sync.Once
-	subscribers    []*amqpSubscriber
+	URI         string // amqp[s]://[username][:password]@host.domain[:port][vhost]
+	CID         string // client id
+	CACertFile  string
+	CertFile    string
+	KeyFile     string
+	Insecure    bool
+	Logger      log.Logger
+	conn        *AMQP.Connection
+	publisherCh *AMQP.Channel // just for publisher
+	once        sync.Once
+	subscribers []*amqpSubscriber
 }
 
 func (a *AMQPBrokerV1) String() string {
@@ -48,7 +48,7 @@ func (a *AMQPBrokerV1) Connect() error {
 		a.subscribers = make([]*amqpSubscriber, 0)
 	})
 	a.Logger.Debugf("AMQPBrokerV1#connect : info is : %v !", a)
-	t, err := tls.GetTLSConfig(a.Insecure, a.CACertFile, a.ClientCertFile, a.ClientKeyFile)
+	t, err := tls.GetClientTLSConfig(a.Insecure, a.CACertFile, a.CertFile, a.KeyFile)
 	if err != nil {
 		return err
 	}
@@ -257,9 +257,10 @@ func (s *amqpSubscriber) subscribe() (err error) {
 	go func() {
 		for msg := range msgs {
 			if callBack != nil {
-				header := make(map[string]string)
+				header := make(map[string][]string)
 				for k, v := range msg.Headers {
-					header[k], _ = v.(string)
+					vs, _ := v.(string)
+					header[k] = []string{vs}
 				}
 				e := &amqpEvent{
 					autoAck: s.opts.AutoAck,

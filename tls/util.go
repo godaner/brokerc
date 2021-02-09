@@ -8,11 +8,30 @@ import (
 )
 
 var (
-	ErrTLS = errors.New("tls err")
+	ErrClientTLS = errors.New("client tls err")
 )
 
-func GetTLSConfig(insecure bool, caCertFile, clientCertFile, clientKeyFile string) (t *tls.Config, err error) {
-	if caCertFile != "" || clientCertFile != "" || clientKeyFile != "" {
+func GetServerTLSConfig(caCertFile string) (t *tls.Config, err error) {
+	if caCertFile == "" {
+		return nil, nil
+	}
+	var ca *x509.CertPool
+	data, err := ioutil.ReadFile(caCertFile)
+	if err != nil {
+		return nil, err
+	}
+	ca = x509.NewCertPool()
+	if ok := ca.AppendCertsFromPEM(data); !ok {
+		return nil, err
+	}
+	return &tls.Config{
+		ClientCAs:  ca,
+		ClientAuth: tls.RequireAndVerifyClientCert,
+	}, nil
+}
+
+func GetClientTLSConfig(insecure bool, caCertFile, CertFile, KeyFile string) (t *tls.Config, err error) {
+	if caCertFile != "" || CertFile != "" || KeyFile != "" {
 		t = &tls.Config{
 			InsecureSkipVerify: insecure,
 		}
@@ -27,12 +46,12 @@ func GetTLSConfig(insecure bool, caCertFile, clientCertFile, clientKeyFile strin
 		}
 		ca = x509.NewCertPool()
 		if ok := ca.AppendCertsFromPEM(data); !ok {
-			return nil, ErrTLS
+			return nil, ErrClientTLS
 		}
 		t.RootCAs = ca
 	}
-	if clientCertFile != "" && clientKeyFile != "" {
-		crt, err := tls.LoadX509KeyPair(clientCertFile, clientKeyFile)
+	if CertFile != "" && KeyFile != "" {
+		crt, err := tls.LoadX509KeyPair(CertFile, KeyFile)
 		if err != nil {
 			return nil, err
 		}

@@ -17,21 +17,21 @@ import (
 
 type MQTTBrokerV1 struct {
 	sync.Once
-	URI            string // mqtt[s]://[username][:password]@host.domain[:port]
-	CID            string // client id
-	WT             string // will topic
-	WP             string // will payload
-	WR             bool   // will retain
-	WQ             byte   // will qos
-	C              bool   // clean session , for subscribe
-	CACertFile     string
-	ClientCertFile string
-	ClientKeyFile  string
-	Debug          bool
-	Insecure       bool
-	Logger         logger.Logger
-	subscribers    *sync.Map
-	c              MQTT.Client
+	URI         string // mqtt[s]://[username][:password]@host.domain[:port]
+	CID         string // client id
+	WT          string // will topic
+	WP          string // will payload
+	WR          bool   // will retain
+	WQ          byte   // will qos
+	C           bool   // clean session , for subscribe
+	CACertFile  string
+	CertFile    string
+	KeyFile     string
+	Debug       bool
+	Insecure    bool
+	Logger      logger.Logger
+	subscribers *sync.Map
+	c           MQTT.Client
 }
 
 func (m *MQTTBrokerV1) Connect() error {
@@ -66,7 +66,7 @@ func (m *MQTTBrokerV1) Connect() error {
 		opts.WillQos = m.WQ
 		opts.WillTopic = m.WT
 	}
-	t, err := tls.GetTLSConfig(m.Insecure, m.CACertFile, m.ClientCertFile, m.ClientKeyFile)
+	t, err := tls.GetClientTLSConfig(m.Insecure, m.CACertFile, m.CertFile, m.KeyFile)
 	if err != nil {
 		return err
 	}
@@ -237,7 +237,7 @@ func (s *mqttSubscriber) subscribe() error {
 					topic: topic,
 					cxt:   context.Background(),
 					m: &broker.Message{
-						Header: make(map[string]string),
+						Header: make(map[string][]string),
 						Body:   message.Payload(),
 					},
 				}
