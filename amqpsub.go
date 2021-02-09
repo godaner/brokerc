@@ -18,26 +18,10 @@ var AMQPSubscribeCommand = cli.Command{
 			Required: true,
 		},
 		cli.StringFlag{
-			Name:     "h",
-			Usage:    "host",
-			Value:    "localhost",
+			Name:     "U",
+			Usage:    "amqp broker URI, amqp[s]://[username][:password]@host.domain[:port].",
 			Required: true,
-		},
-		cli.StringFlag{
-			Name:     "p",
-			Usage:    "port.",
-			Value:    "5672",
-			Required: true,
-		},
-		cli.StringFlag{
-			Name:     "u",
-			Usage:    "username.",
-			Required: false,
-		},
-		cli.StringFlag{
-			Name:     "P",
-			Usage:    "password.",
-			Required: false,
+			Value:    "amqp://system:manager@localhost:5672",
 		},
 		cli.StringFlag{
 			Name:     "i",
@@ -106,11 +90,8 @@ var AMQPSubscribeCommand = cli.Command{
 		},
 	},
 	Action: func(context *cli.Context) error {
-		h, p, u, P, i, t, d, cafile, cert, key, insecure, exchange, exchangeType, exchangeAD, exchangeDuration, queue, queueAD, queueDuration :=
-			context.String("h"),
-			context.String("p"),
-			context.String("u"),
-			context.String("P"),
+		U, i, t, d, cafile, cert, key, insecure, exchange, exchangeType, exchangeAD, exchangeDuration, queue, queueAD, queueDuration :=
+			context.String("U"),
 			context.String("i"),
 			context.String("t"),
 			context.Bool("d"),
@@ -133,10 +114,7 @@ var AMQPSubscribeCommand = cli.Command{
 		// 	amqp.DEBUG = log.New(os.Stdout, "AMQP_DEBUG ", 0)
 		// }
 		b := amqpv1.AMQPBrokerV1{
-			Host:           h,
-			Port:           p,
-			Username:       u,
-			Password:       P,
+			URI:            U,
 			CID:            i,
 			CACertFile:     cafile,
 			ClientCertFile: cert,
@@ -150,7 +128,7 @@ var AMQPSubscribeCommand = cli.Command{
 		}
 		defer b.Disconnect()
 		s, err := b.Subscribe([]string{t}, func(event broker.Event) error {
-			logger.Infof("SUBSCRIBE=> h:%v, p:%v, u:%v, P:%v, i:%v, t:%v, exchange:%v, exchangeType:%v, queue:%v, m:%v !", h, p, u, P, i, t, exchange, exchangeType, queue, string(event.Message().Body))
+			logger.Infof("SUBSCRIBE=> U:%v, i:%v, t:%v, exchange:%v, exchangeType:%v, queue:%v, m:%v !", U, i, t, exchange, exchangeType, queue, string(event.Message().Body))
 			return nil
 		}, broker.SetSubQueue(queue),
 			broker.SetSubAutoAck(true),

@@ -15,10 +15,7 @@ import (
 
 type MQTTBrokerV1 struct {
 	sync.Once
-	Host           string // localhost , ssl://localhost
-	Port           string
-	Username       string
-	Password       string
+	URI            string // mqtt[s]://[username][:password]@host.domain[:port]
 	CID            string // client id
 	WT             string // will topic
 	WP             string // will payload
@@ -39,22 +36,13 @@ func (m *MQTTBrokerV1) Connect() error {
 	m.Logger.Debugf("MQTTBrokerV1#Connect : info is : %v !", m)
 	// opts
 	opts := MQTT.NewClientOptions()
-	if m.Host == "" || m.Port == "" {
-		return broker.ErrConnectParam
-	}
-	opts.AddBroker(m.Host + ":" + m.Port)
+	opts.AddBroker(m.URI)
 	cid := uuid.New().String()
 	if m.CID != "" {
 		cid = m.CID
 	}
 	opts.SetClientID(cid)
 	opts.SetCleanSession(m.C)
-	if m.Username != "" {
-		opts.SetUsername(m.Username)
-	}
-	if m.Password != "" {
-		opts.SetPassword(m.Password)
-	}
 	opts.SetAutoReconnect(true)
 	opts.SetMaxReconnectInterval(10 * time.Second)
 

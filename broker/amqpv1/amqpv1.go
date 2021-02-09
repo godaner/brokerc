@@ -17,19 +17,12 @@ const (
 )
 
 type AMQPBrokerV1 struct {
-	Host           string // localhost , ssl://localhost
-	Port           string
-	Username       string
-	Password       string
+	URI            string // amqp[s]://[username][:password]@host.domain[:port]
 	CID            string // client id
 	CACertFile     string
 	ClientCertFile string
 	ClientKeyFile  string
 	Insecure       bool
-	// Exchange         string
-	// ExchangeType     string
-	// ExchangeAD       bool // exchange auto delete
-	// ExchangeDuration bool // exchange duration
 	Logger         log.Logger
 	conn           *AMQP.Connection
 	publisherCh    *AMQP.Channel // just for publisher
@@ -61,18 +54,13 @@ func (a *AMQPBrokerV1) Connect() error {
 		return err
 	}
 	// conn
-	url := a.Username + ":" + a.Password + "@" + a.Host + ":" + a.Port + "/"
-	if t == nil {
-		a.conn, err = AMQP.Dial("amqp://" + url)
-		if err != nil {
-			return err
-		}
-	} else {
-		a.conn, err = AMQP.DialTLS("amqps://"+url, t)
-		if err != nil {
-			return err
-		}
+	a.conn, err = AMQP.DialConfig(a.URI, AMQP.Config{
+		TLSClientConfig: t,
+	})
+	if err != nil {
+		return err
 	}
+
 	// add listener
 	closeSig := make(chan *AMQP.Error, 1)
 	go a.listenClose(closeSig)

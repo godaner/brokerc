@@ -12,22 +12,16 @@ Or get it from the released version:
 ## MQTT
 #### Publish
     ./brokerclinux mqttpub \
+    -U tcp://system:manager@192.168.2.60:1883 \
     -t "/a/b" \
-    -h "192.168.2.60" \
-    -p "1883" \
-    -u "system" \
-    -P "manager" \
     -i "mqttpub" \
     -m 'cas' \
     --will-payload 'pub bye' \
     --will-topic 'will'
 #### Publish with tls
     ./brokerclinux mqttpub \
+    -U ssl://system:manager@localhost:1883 \
     -t "/a/b" \
-    -h "ssl://localhost" \
-    -p "1883" \
-    -u "system" \
-    -P "manager" \
     -i "mqttpub" \
     -m 'cas' \
     --will-payload 'pub bye' \
@@ -38,21 +32,15 @@ Or get it from the released version:
     -key /opt/OmniVista_2500_NMS/data/cert/wma/wma.key
 #### Subscribe
     ./brokerclinux mqttsub \
+    -U tcp://system:manager@192.168.2.60:1883 \
     -t "/a/b" \
-    -h "192.168.2.62" \
-    -p "1883" \
-    -u "system" \
-    -P "manager" \
     -i "mqttsub" \
     --will-payload 'sub bye' \
     --will-topic 'will'
 #### Subscribe with tls
     ./brokerclinux mqttsub \
+    -U ssl://system:manager@localhost:1883 \
     -t "/a/b" \
-    -h "ssl://localhost" \
-    -p "1883" \
-    -u "system" \
-    -P "manager" \
     -i "mqttsub" \
     --will-payload 'sub bye' \
     --will-topic 'will' \
@@ -64,11 +52,8 @@ Or get it from the released version:
 #### Publish
 #### Subscribe
     ./brokerclinux amqpsub \
+    -U amqp://system:manager@192.168.2.60:5672 \
     -t "/a/b" \
-    -h "192.168.2.60" \
-    -p "5672" \
-    -u "system" \
-    -P "manager" \
     -i "amqpsubclient" \
     --queue "amqpqueue" \
     --exchange "amqpexchange" \

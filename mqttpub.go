@@ -24,26 +24,10 @@ var MQTTPublishCommand = cli.Command{
 			Required: true,
 		},
 		cli.StringFlag{
-			Name:     "h",
-			Usage:    "host",
-			Value:    "localhost",
+			Name:     "U",
+			Usage:    "mqtt broker URI, the format is like this: mqtt[s]://[username][:password]@host.domain[:port].",
 			Required: true,
-		},
-		cli.StringFlag{
-			Name:     "p",
-			Usage:    "port.",
-			Value:    "1883",
-			Required: true,
-		},
-		cli.StringFlag{
-			Name:     "u",
-			Usage:    "username.",
-			Required: false,
-		},
-		cli.StringFlag{
-			Name:     "P",
-			Usage:    "password.",
-			Required: false,
+			Value:    "mqtt://system:manager@localhost:1883",
 		},
 		cli.StringFlag{
 			Name:     "i",
@@ -107,10 +91,8 @@ var MQTTPublishCommand = cli.Command{
 		},
 	},
 	Action: func(context *cli.Context) error {
-		h, p, u, P, i, t, d, q, r, m, wt, wp, wr, wq, cafile, cert, key, insecure := context.String("h"),
-			context.String("p"),
-			context.String("u"),
-			context.String("P"),
+		U, i, t, d, q, r, m, wt, wp, wr, wq, cafile, cert, key, insecure :=
+			context.String("U"),
 			context.String("i"),
 			context.String("t"),
 			context.Bool("d"),
@@ -133,10 +115,7 @@ var MQTTPublishCommand = cli.Command{
 			mqtt.DEBUG = log.New(os.Stdout, "MQTT_DEBUG ", 0)
 		}
 		b := mqttv1.MQTTBrokerV1{
-			Host:           h,
-			Port:           p,
-			Username:       u,
-			Password:       P,
+			URI:            U,
 			CID:            i,
 			WT:             wt,
 			WP:             wp,
@@ -161,7 +140,7 @@ var MQTTPublishCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-		logger.Infof("PUBLISH=> h:%v, p:%v, u:%v, P:%v, i:%v, t:%v, q:%v, r:%v, m:%v !", h, p, u, P, i, t, q, r, m)
+		logger.Infof("PUBLISH=> U:%v, i:%v, t:%v, q:%v, r:%v, m:%v !", U, i, t, q, r, m)
 		return nil
 	},
 }
