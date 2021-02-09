@@ -9,19 +9,14 @@ import (
 )
 
 var AMQPSubscribeCommand = cli.Command{
-	Name:  "amqpsub",
-	Usage: "amqp subscribe message",
+	Name:      "amqpsub",
+	Usage:     "amqp subscribe message",
+	UsageText: "Usage: brokerc amqpsub [options...] <uri>",
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:     "t",
 			Usage:    "topic.",
 			Required: true,
-		},
-		cli.StringFlag{
-			Name:     "U",
-			Usage:    "amqp broker URI, amqp[s]://[username][:password]@host.domain[:port].",
-			Required: true,
-			Value:    "amqp://system:manager@localhost:5672",
 		},
 		cli.StringFlag{
 			Name:     "i",
@@ -90,8 +85,8 @@ var AMQPSubscribeCommand = cli.Command{
 		},
 	},
 	Action: func(context *cli.Context) error {
-		U, i, t, d, cafile, cert, key, insecure, exchange, exchangeType, exchangeAD, exchangeDuration, queue, queueAD, queueDuration :=
-			context.String("U"),
+		uri := context.Args().Get(0)
+		i, t, d, cafile, cert, key, insecure, exchange, exchangeType, exchangeAD, exchangeDuration, queue, queueAD, queueDuration :=
 			context.String("i"),
 			context.String("t"),
 			context.Bool("d"),
@@ -114,7 +109,7 @@ var AMQPSubscribeCommand = cli.Command{
 		// 	amqp.DEBUG = log.New(os.Stdout, "AMQP_DEBUG ", 0)
 		// }
 		b := amqpv1.AMQPBrokerV1{
-			URI:            U,
+			URI:            uri,
 			CID:            i,
 			CACertFile:     cafile,
 			ClientCertFile: cert,
@@ -128,7 +123,7 @@ var AMQPSubscribeCommand = cli.Command{
 		}
 		defer b.Disconnect()
 		s, err := b.Subscribe([]string{t}, func(event broker.Event) error {
-			logger.Infof("SUBSCRIBE=> U:%v, i:%v, t:%v, exchange:%v, exchangeType:%v, queue:%v, m:%v !", U, i, t, exchange, exchangeType, queue, string(event.Message().Body))
+			logger.Infof("SUBSCRIBE=> uri:%v, i:%v, t:%v, exchange:%v, exchangeType:%v, queue:%v, m:%v !", uri, i, t, exchange, exchangeType, queue, string(event.Message().Body))
 			return nil
 		}, broker.SetSubQueue(queue),
 			broker.SetSubAutoAck(true),

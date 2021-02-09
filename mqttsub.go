@@ -11,19 +11,14 @@ import (
 )
 
 var MQTTSubscribeCommand = cli.Command{
-	Name:  "mqttsub",
-	Usage: "mqtt subscribe message",
+	Name:      "mqttsub",
+	Usage:     "mqtt subscribe message",
+	UsageText: "Usage: brokerc mqttsub [options...] <uri>",
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:     "t",
 			Usage:    "topic.",
 			Required: true,
-		},
-		cli.StringFlag{
-			Name:     "U",
-			Usage:    "mqtt broker URI, the format is like this: mqtt[s]://[username][:password]@host.domain[:port].",
-			Required: true,
-			Value:    "mqtt://system:manager@localhost:1883",
 		},
 		cli.StringFlag{
 			Name:     "i",
@@ -87,8 +82,8 @@ var MQTTSubscribeCommand = cli.Command{
 		},
 	},
 	Action: func(context *cli.Context) error {
-		U, i, t, d, q, c, wt, wp, wr, wq, cafile, cert, key, insecure :=
-			context.String("U"),
+		uri := context.Args().Get(0)
+		i, t, d, q, c, wt, wp, wr, wq, cafile, cert, key, insecure :=
 			context.String("i"),
 			context.String("t"),
 			context.Bool("d"),
@@ -110,7 +105,7 @@ var MQTTSubscribeCommand = cli.Command{
 			mqtt.DEBUG = log.New(os.Stdout, "MQTT_DEBUG ", 0)
 		}
 		b := mqttv1.MQTTBrokerV1{
-			URI:            U,
+			URI:            uri,
 			CID:            i,
 			WT:             wt,
 			WP:             wp,
@@ -129,7 +124,7 @@ var MQTTSubscribeCommand = cli.Command{
 		}
 		defer b.Disconnect()
 		s, err := b.Subscribe([]string{t}, func(event broker.Event) error {
-			logger.Infof("SUBSCRIBE=> U:%v, i:%v, t:%v, q:%v, c:%v, m:%v !", U, i, t, q, c, string(event.Message().Body))
+			logger.Infof("SUBSCRIBE=> uri:%v, i:%v, t:%v, q:%v, c:%v, m:%v !", uri, i, t, q, c, string(event.Message().Body))
 			return nil
 		}, broker.SetSubQOS(q))
 		defer s.Unsubscribe()

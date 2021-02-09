@@ -111,7 +111,7 @@ func (a *AMQPBrokerV1) Publish(topic string, msg *broker.Message, opt ...broker.
 	// exchange
 	decInf, ok := a.pubDecExchange.Load(opts.ExchangeName)
 	dec, _ := decInf.(bool)
-	if opts.ExchangeName != "" && !ok && !dec {
+	if opts.ExchangeName != "" && opts.ExchangeType != "" && !ok && !dec {
 		a.Logger.Debugf("AMQPBrokerV1#Publish : dec exchange , name is : %v , type is : %v !", opts.ExchangeName, opts.ExchangeType)
 		err = a.publisherCh.ExchangeDeclare(
 			opts.ExchangeName,     // name

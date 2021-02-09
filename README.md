@@ -1,4 +1,4 @@
-brokerc is a cross platform publish subscribe client, including mqtt protocol.
+brokerc is a cross platform publish subscribe client, including mqtt client, amqp client.
 # Install
 To install the library, follow the classical:
 
@@ -6,13 +6,15 @@ To install the library, follow the classical:
     
 Or get it from the released version: 
 
-    https://github.com/godaner/brokerc/releases, 
+    https://github.com/godaner/brokerc/releases
+    
 > Note: wget -O brokerclinux https://github.com/godaner/brokerc/releases/download/1.0.0/brokerclinux
+
 # Examples
 ## MQTT
 #### Publish
     ./brokerclinux mqttpub \
-    -U tcp://system:manager@192.168.2.60:1883 \
+    tcp://system:manager@192.168.2.60:1883 \
     -t "/a/b" \
     -i "mqttpub" \
     -m 'cas' \
@@ -20,7 +22,7 @@ Or get it from the released version:
     --will-topic 'will'
 #### Publish with tls
     ./brokerclinux mqttpub \
-    -U ssl://system:manager@localhost:1883 \
+    ssl://system:manager@localhost:1883 \
     -t "/a/b" \
     -i "mqttpub" \
     -m 'cas' \
@@ -32,14 +34,14 @@ Or get it from the released version:
     -key /opt/OmniVista_2500_NMS/data/cert/wma/wma.key
 #### Subscribe
     ./brokerclinux mqttsub \
-    -U tcp://system:manager@192.168.2.60:1883 \
+    tcp://system:manager@192.168.2.60:1883 \
     -t "/a/b" \
     -i "mqttsub" \
     --will-payload 'sub bye' \
     --will-topic 'will'
 #### Subscribe with tls
     ./brokerclinux mqttsub \
-    -U ssl://system:manager@localhost:1883 \
+    ssl://system:manager@localhost:1883 \
     -t "/a/b" \
     -i "mqttsub" \
     --will-payload 'sub bye' \
@@ -52,7 +54,7 @@ Or get it from the released version:
 #### Publish
 #### Subscribe
     ./brokerclinux amqpsub \
-    -U amqp://system:manager@192.168.2.60:5672 \
+    amqp://system:manager@192.168.2.60:5672 \
     -t "/a/b" \
     -i "amqpsubclient" \
     --queue "amqpqueue" \
