@@ -8,7 +8,7 @@ Or get it from the released version:
 
     https://github.com/godaner/brokerc/releases
     
-> Note: wget -O brokerc https://github.com/godaner/brokerc/releases/download/1.0.0/brokerc
+> Note: wget -O brokerc https://github.com/godaner/brokerc/releases/download/1.0.1/brokerclinux
 
 # Examples
 ## MQTT
