@@ -11,7 +11,7 @@ var (
 	ErrPublish = errors.New("publish err")
 	// ErrSubscribe         = errors.New("subscribe err")
 	// ErrConnectParam = errors.New("connect param err")
-	// ErrConnect           = errors.New("connect err")
+	ErrConnect           = errors.New("connect err")
 	ErrConnectionIsNotOK = errors.New("connection is not ok")
 	ErrQOS               = errors.New("qos err")
 )

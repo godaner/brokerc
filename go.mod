@@ -3,6 +3,7 @@ module github.com/godaner/brokerc
 go 1.12
 
 require (
+	github.com/Shopify/sarama v1.27.2
 	github.com/eclipse/paho.mqtt.golang v1.3.2
 	github.com/google/uuid v1.2.0
 	github.com/streadway/amqp v1.0.0

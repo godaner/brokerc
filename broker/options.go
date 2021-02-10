@@ -13,6 +13,9 @@ type PublishOptions struct {
 	Context          context.Context
 	QOS              int
 	Retained         bool
+	// kafka
+	Part    int
+	Replica int
 }
 
 func (p *PublishOptions) String() string {
@@ -37,6 +40,9 @@ type SubscribeOptions struct {
 	ExchangeDuration bool // exchange duration
 	QOS              int
 	Context          context.Context
+	// kafka
+	Part    int
+	Replica int
 }
 
 func (s *SubscribeOptions) String() string {
@@ -55,6 +61,20 @@ type SubscribeOption func(*SubscribeOptions)
 type PublishOption func(*PublishOptions)
 
 // Set SubscribeOption
+// SetSubPart
+func SetSubPart(p int) SubscribeOption {
+	return func(o *SubscribeOptions) {
+		o.Part = p
+	}
+}
+
+// SetSubReplica
+func SetSubReplica(r int) SubscribeOption {
+	return func(o *SubscribeOptions) {
+		o.Replica = r
+	}
+}
+
 // SetSubDuration
 func SetSubDuration(duration bool) SubscribeOption {
 	return func(o *SubscribeOptions) {
@@ -173,5 +193,19 @@ func SetPubExchangeAD(ad bool) PublishOption {
 func SetPubExchangeDuration(duration bool) PublishOption {
 	return func(o *PublishOptions) {
 		o.ExchangeDuration = duration
+	}
+}
+
+// SetPubPart
+func SetPubPart(p int) PublishOption {
+	return func(o *PublishOptions) {
+		o.Part = p
+	}
+}
+
+// SetPubReplica
+func SetPubReplica(r int) PublishOption {
+	return func(o *PublishOptions) {
+		o.Replica = r
 	}
 }
