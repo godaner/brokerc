@@ -54,7 +54,7 @@ This library works (and is tested) on the following platforms:
 ```
 $ ./brokerc --help
 NAME:
-   brokerc - brokerc is a cross-platform publish and subscribe command line client tool, including mqtt client, amqp client, http client, kafka client.
+   brokerc - brokerc is a cross-platform publish and subscribe command line client tool, including mqtt client, amqp client, kafka client, http client.
 
 USAGE:
    brokerc [global options] command [command options] [arguments...]
@@ -63,13 +63,15 @@ VERSION:
    1.0.2
 
 COMMANDS:
-   mqttpub  publish mqtt message
-   mqttsub  subscribe mqtt message
-   amqpsub  subscribe amqp message
-   amqppub  publish amqp message
-   httppub  publish http message
-   httpsub  subscribe http message
-   help, h  Shows a list of commands or help for one command
+   mqttpub   publish mqtt message
+   mqttsub   subscribe mqtt message
+   amqpsub   subscribe amqp message
+   amqppub   publish amqp message
+   kafkapub  publish kafka message
+   kafkasub  subscribe kafka message
+   httppub   publish http message
+   httpsub   subscribe http message
+   help, h   Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
    --help     show help
