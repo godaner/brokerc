@@ -31,32 +31,12 @@ var HTTPSubscribeCommand = cli.Command{
 		},
 		cli.StringFlag{
 			Name:     "cert",
-			Usage:    "client certificate for authentication, if required by server.",
+			Usage:    "server certificate for authentication, if required by server.",
 			Required: false,
 		},
 		cli.StringFlag{
 			Name:     "key",
-			Usage:    "client private key for authentication, if required by server.",
-			Required: false,
-		},
-		cli.StringFlag{
-			Name:     "will-payload",
-			Usage:    "payload for the client Will, which is sent by the broker in case of unexpected disconnection. If not given and will-topic is set, a zero length message will be sent.",
-			Required: false,
-		},
-		cli.StringFlag{
-			Name:     "will-topic",
-			Usage:    "the topic on which to subscribe the client Will.",
-			Required: false,
-		},
-		cli.BoolFlag{
-			Name:     "will-retain",
-			Usage:    "if given, make the client Will retained.",
-			Required: false,
-		},
-		cli.StringFlag{
-			Name:     "will-qos",
-			Usage:    "QoS level for the client Will.",
+			Usage:    "server private key for authentication, if required by server.",
 			Required: false,
 		},
 	},

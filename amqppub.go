@@ -48,7 +48,7 @@ var AMQPPublishCommand = cli.Command{
 		},
 		cli.BoolFlag{
 			Name:     "insecure",
-			Usage:    "do not check that the server certificate hostname matches the remote hostname. Using this option means that you cannot be sure that the remote host is the server you wish to connect to and so is insecure. Do not use this option in a production environment.",
+			Usage:    "do not check that the server certificate hostname matches the remote hostname.",
 			Required: false,
 		},
 		cli.StringFlag{

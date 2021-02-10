@@ -59,27 +59,7 @@ var HTTPPublishCommand = cli.Command{
 		},
 		cli.BoolFlag{
 			Name:     "insecure",
-			Usage:    "do not check that the server certificate hostname matches the remote hostname. Using this option means that you cannot be sure that the remote host is the server you wish to connect to and so is insecure. Do not use this option in a production environment.",
-			Required: false,
-		},
-		cli.StringFlag{
-			Name:     "will-payload",
-			Usage:    "payload for the client Will, which is sent by the broker in case of unexpected disconnection. If not given and will-topic is set, a zero length message will be sent.",
-			Required: false,
-		},
-		cli.StringFlag{
-			Name:     "will-topic",
-			Usage:    "the topic on which to publish the client Will.",
-			Required: false,
-		},
-		cli.BoolFlag{
-			Name:     "will-retain",
-			Usage:    "if given, make the client Will retained.",
-			Required: false,
-		},
-		cli.StringFlag{
-			Name:     "will-qos",
-			Usage:    "QoS level for the client Will.",
+			Usage:    "do not check that the server certificate hostname matches the remote hostname.",
 			Required: false,
 		},
 	},
