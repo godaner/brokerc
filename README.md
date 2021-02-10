@@ -1,4 +1,4 @@
-brokerc is a cross platform publish subscribe client, including mqtt client, amqp client, http client.
+brokerc is a cross-platform publish and subscribe command line client tool, including mqtt client, amqp client, http client.
 # Install
 To install the library, follow the classical:
 
@@ -10,7 +10,46 @@ Or get it from the released version:
     
 > Note: wget -O brokerc https://github.com/godaner/brokerc/releases/download/1.0.1/brokerclinux
 
-# Examples
+# Supported platforms
+
+This library works (and is tested) on the following platforms:
+
+<table>
+  <thead>
+    <tr>
+      <th>Platform</th>
+      <th>Architecture</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td rowspan="2">Linux</td>
+      <td><code>amd64</code></td>
+      <td>✅</td>
+    </tr>
+    <tr>
+      <td><code>386</code></td>
+      <td>✅</td>
+    </tr>
+    <tr>
+      <td rowspan="2">Windows</td>
+      <td><code>amd64</code></td>
+      <td>✅</td>
+    </tr>
+    <tr>
+      <td><code>386</code></td>
+      <td>✅</td>
+    </tr>
+    <tr>
+      <td>Others</td>
+      <td><code>Others</code></td>
+      <td>⏳</td>
+    </tr>
+  </tbody>
+</table>
+
+# Usage
 ## MQTT
 #### Publish
     ./brokerc mqttpub \
