@@ -1,5 +1,5 @@
 # Brokerc
-brokerc is a cross-platform publish and subscribe command line client tool, including mqtt client, amqp client, http client, kafka client.
+brokerc is a cross-platform publish and subscribe command line client tool, including mqtt client, amqp client, kafka client, http client.
 # Install
 To install the library, follow the classical:
 
@@ -141,3 +141,16 @@ GLOBAL OPTIONS:
 #### Subscribe
     ./brokerc httpsub \
     -h :2222
+## Kafka
+#### Publish
+    ./brokerc kafkapub \
+    192.168.2.10:9092 \
+    -t "ktopic" \
+    -m 'test message'
+#### Subscribe
+    ./brokerc kafkasub \
+    192.168.2.10:9092 \
+    -t "ktopic" \
+    -p 3 \
+    -r 1 \
+    -q "kqueue"

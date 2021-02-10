@@ -2,8 +2,10 @@ package logv1
 
 import (
 	"fmt"
+	"github.com/Shopify/sarama"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 )
 
@@ -19,6 +21,7 @@ func (l *LoggerV1) SetDebug(debug bool) {
 	} else {
 		l.DebugWriter = ioutil.Discard
 	}
+	sarama.Logger = log.New(l.DebugWriter, "KAFKA ", 0)
 }
 
 func (l *LoggerV1) Debugf(fms string, arg ...interface{}) {

@@ -50,6 +50,7 @@ func (s *Sarama) toSarama(c *sarama.Config) {
 // KafkaBrokerV1
 type KafkaBrokerV1 struct {
 	sync.Once
+	sync.Mutex
 	Logger    log.Logger
 	URIs      []string
 	TLS       *TLS
@@ -112,36 +113,59 @@ func (k *KafkaBrokerV1) Publish(topic string, msg *broker.Message, opt ...broker
 		o(&opts)
 	}
 	if opts.Part != 0 && opts.Replica != 0 {
-		_, ok := k.rem.Load("topic" + topic)
-		if !ok {
-			err := k.brokersCreateTopic(k.URIs, topic, opts.Part, opts.Replica)
-			if err != nil {
-				return err
+		err := func() error {
+			_, ok := k.rem.Load("topic" + topic)
+			if !ok {
+				k.Lock()
+				defer k.Unlock()
+				_, ok := k.rem.Load("topic" + topic)
+				if !ok {
+					err := k.brokersCreateTopic(k.URIs, topic, opts.Part, opts.Replica)
+					if err != nil {
+						return err
+					}
+					k.rem.Store("topic"+topic, true)
+				}
+
 			}
-			k.rem.Store("topic"+topic, true)
+			return nil
+		}()
+		if err != nil {
+			return err
 		}
 	}
-	_, ok := k.rem.Load("pubclient")
-	if !ok {
-		// For implementation reasons, the SyncProducer requires
-		// `Producer.Return.Errors` and `Producer.Return.Successes`
-		// to be set to true in its configuration.
-		config, err := k.getPubConfig()
-		c, err := sarama.NewClient(k.URIs, config)
-		if err != nil {
-			return err
+	err := func() error {
+		_, ok := k.rem.Load("pubclient")
+		if !ok {
+			k.Lock()
+			defer k.Unlock()
+			_, ok := k.rem.Load("pubclient")
+			if !ok {
+				// For implementation reasons, the SyncProducer requires
+				// `Producer.Return.Errors` and `Producer.Return.Successes`
+				// to be set to true in its configuration.
+				config, err := k.getPubConfig()
+				c, err := sarama.NewClient(k.URIs, config)
+				if err != nil {
+					return err
+				}
+				k.c = c
+				p, err := sarama.NewSyncProducerFromClient(c)
+				if err != nil {
+					return err
+				}
+				k.p = p
+				k.sc = make([]sarama.Client, 0)
+				k.rem.Store("pubclient", true)
+			}
 		}
-		k.c = c
-		p, err := sarama.NewSyncProducerFromClient(c)
-		if err != nil {
-			return err
-		}
-		k.p = p
-		k.sc = make([]sarama.Client, 0)
-		k.rem.Store("pubclient", true)
+		return nil
+	}()
+	if err != nil {
+		return err
 	}
 	// notice marshal body only
-	_, _, err := k.p.SendMessage(&sarama.ProducerMessage{
+	_, _, err = k.p.SendMessage(&sarama.ProducerMessage{
 		Topic: topic,
 		Value: sarama.ByteEncoder(string(msg.Body)),
 	})
@@ -159,17 +183,27 @@ func (k *KafkaBrokerV1) Subscribe(topics []string, callBack broker.CallBack, opt
 	}
 	if opts.Part != 0 && opts.Replica != 0 {
 		for _, topic := range topics {
-			_, ok := k.rem.Load("topic" + topic)
-			if !ok {
-				err := k.brokersCreateTopic(k.URIs, topic, opts.Part, opts.Replica)
-				if err != nil {
-					return nil, err
+			err := func() error {
+				_, ok := k.rem.Load("topic" + topic)
+				if !ok {
+					k.Lock()
+					defer k.Unlock()
+					_, ok := k.rem.Load("topic" + topic)
+					if !ok {
+						err := k.brokersCreateTopic(k.URIs, topic, opts.Part, opts.Replica)
+						if err != nil {
+							return err
+						}
+						k.rem.Store("topic"+topic, true)
+					}
 				}
-				k.rem.Store("topic"+topic, true)
+				return nil
+			}()
+			if err != nil {
+				return nil, err
 			}
 		}
 	}
-	cxt := opts.Context
 	// we need to create a new client per consumer
 	c, err := k.getSubClusterClient()
 	if err != nil {
@@ -190,12 +224,12 @@ func (k *KafkaBrokerV1) Subscribe(topics []string, callBack broker.CallBack, opt
 		for {
 			select {
 			case err := <-cg.Errors():
-				k.Logger.Errorf("KafkaBrokerV1#Subscribe : consumer1 err , err is : %v !", cxt, err)
+				k.Logger.Errorf("KafkaBrokerV1#Subscribe : consumer1 err , err is : %v !", err)
 			default:
 				err := cg.Consume(ctx, topics, h)
-				if err != nil {
-					k.Logger.Errorf("KafkaBrokerV1#Subscribe : consumer2 err , err is : %v !", cxt, err)
-				}
+				// if err != nil {
+				// 	k.Logger.Errorf("KafkaBrokerV1#Subscribe : consumer2 err , err is : %v !", err)
+				// }
 				if err == sarama.ErrClosedConsumerGroup {
 					return
 				}

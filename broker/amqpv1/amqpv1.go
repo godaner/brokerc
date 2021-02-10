@@ -18,6 +18,7 @@ const (
 
 type AMQPBrokerV1 struct {
 	sync.Once
+	sync.Mutex
 	URI         string // amqp[s]://[username][:password]@host.domain[:port][vhost]
 	CID         string // client id
 	CACertFile  string
@@ -108,23 +109,36 @@ func (a *AMQPBrokerV1) Publish(topic string, msg *broker.Message, opt ...broker.
 			return err
 		}
 	}
-	_, ok := a.rem.Load("exchange" + opts.ExchangeName)
-	// exchange
-	if opts.ExchangeName != "" && opts.ExchangeType != "" && !ok {
-		a.Logger.Debugf("AMQPBrokerV1#Publish : dec exchange , name is : %v , type is : %v !", opts.ExchangeName, opts.ExchangeType)
-		err = a.publisherCh.ExchangeDeclare(
-			opts.ExchangeName,     // name
-			opts.ExchangeType,     // type
-			opts.ExchangeDuration, // durable
-			opts.ExchangeAD,       // auto-deleted
-			false,                 // internal
-			false,                 // no-wait
-			nil,                   // arguments
-		)
+	if opts.ExchangeName != "" && opts.ExchangeType != "" {
+		err = func() error {
+			_, ok := a.rem.Load("exchange" + opts.ExchangeName)
+			if !ok {
+				a.Lock()
+				defer a.Unlock()
+				_, ok := a.rem.Load("exchange" + opts.ExchangeName)
+				if !ok {
+					// exchange
+					a.Logger.Debugf("AMQPBrokerV1#Publish : dec exchange , name is : %v , type is : %v !", opts.ExchangeName, opts.ExchangeType)
+					err = a.publisherCh.ExchangeDeclare(
+						opts.ExchangeName,     // name
+						opts.ExchangeType,     // type
+						opts.ExchangeDuration, // durable
+						opts.ExchangeAD,       // auto-deleted
+						false,                 // internal
+						false,                 // no-wait
+						nil,                   // arguments
+					)
+					if err != nil {
+						return err
+					}
+					a.rem.Store("exchange"+opts.ExchangeName, true)
+				}
+			}
+			return nil
+		}()
 		if err != nil {
 			return err
 		}
-		a.rem.Store("exchange"+opts.ExchangeName, true)
 	}
 
 	// Publish
