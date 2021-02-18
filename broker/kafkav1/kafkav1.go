@@ -7,6 +7,7 @@ import (
 	"github.com/Shopify/sarama"
 	"github.com/godaner/brokerc/broker"
 	"github.com/godaner/brokerc/log"
+	sync2 "github.com/godaner/brokerc/sync"
 	tls2 "github.com/godaner/brokerc/tls"
 	"github.com/google/uuid"
 	c "golang.org/x/net/context"
@@ -50,7 +51,7 @@ func (s *Sarama) toSarama(c *sarama.Config) {
 // KafkaBrokerV1
 type KafkaBrokerV1 struct {
 	sync.Once
-	sync.Mutex
+	sync2.OnceError
 	Logger    log.Logger
 	URIs      []string
 	TLS       *TLS
@@ -63,7 +64,7 @@ type KafkaBrokerV1 struct {
 }
 
 func (k *KafkaBrokerV1) Connect() error {
-	k.Do(func() {
+	k.Once.Do(func() {
 		k.rem = &sync.Map{}
 	})
 	return nil
@@ -113,54 +114,37 @@ func (k *KafkaBrokerV1) Publish(topic string, msg *broker.Message, opt ...broker
 		o(&opts)
 	}
 	if opts.Part != 0 && opts.Replica != 0 {
-		err := func() error {
-			_, ok := k.rem.Load("topic" + topic)
-			if !ok {
-				k.Lock()
-				defer k.Unlock()
-				_, ok := k.rem.Load("topic" + topic)
-				if !ok {
-					err := k.brokersCreateTopic(k.URIs, topic, opts.Part, opts.Replica)
-					if err != nil {
-						return err
-					}
-					k.rem.Store("topic"+topic, true)
-				}
-
+		onceErrI, _ := k.rem.LoadOrStore("topic"+topic, sync2.OnceError{})
+		onceErr := onceErrI.(sync2.OnceError)
+		err := onceErr.Do(func() error {
+			err := k.brokersCreateTopic(k.URIs, topic, opts.Part, opts.Replica)
+			if err != nil {
+				return err
 			}
 			return nil
-		}()
+		})
 		if err != nil {
 			return err
 		}
 	}
-	err := func() error {
-		_, ok := k.rem.Load("pubclient")
-		if !ok {
-			k.Lock()
-			defer k.Unlock()
-			_, ok := k.rem.Load("pubclient")
-			if !ok {
-				// For implementation reasons, the SyncProducer requires
-				// `Producer.Return.Errors` and `Producer.Return.Successes`
-				// to be set to true in its configuration.
-				config, err := k.getPubConfig()
-				c, err := sarama.NewClient(k.URIs, config)
-				if err != nil {
-					return err
-				}
-				k.c = c
-				p, err := sarama.NewSyncProducerFromClient(c)
-				if err != nil {
-					return err
-				}
-				k.p = p
-				k.sc = make([]sarama.Client, 0)
-				k.rem.Store("pubclient", true)
-			}
+	err := k.OnceError.Do(func() error {
+		// For implementation reasons, the SyncProducer requires
+		// `Producer.Return.Errors` and `Producer.Return.Successes`
+		// to be set to true in its configuration.
+		config, err := k.getPubConfig()
+		c, err := sarama.NewClient(k.URIs, config)
+		if err != nil {
+			return err
 		}
+		k.c = c
+		p, err := sarama.NewSyncProducerFromClient(c)
+		if err != nil {
+			return err
+		}
+		k.p = p
+		// k.sc = make([]sarama.Client, 0)
 		return nil
-	}()
+	})
 	if err != nil {
 		return err
 	}
@@ -183,22 +167,7 @@ func (k *KafkaBrokerV1) Subscribe(topics []string, callBack broker.CallBack, opt
 	}
 	if opts.Part != 0 && opts.Replica != 0 {
 		for _, topic := range topics {
-			err := func() error {
-				_, ok := k.rem.Load("topic" + topic)
-				if !ok {
-					k.Lock()
-					defer k.Unlock()
-					_, ok := k.rem.Load("topic" + topic)
-					if !ok {
-						err := k.brokersCreateTopic(k.URIs, topic, opts.Part, opts.Replica)
-						if err != nil {
-							return err
-						}
-						k.rem.Store("topic"+topic, true)
-					}
-				}
-				return nil
-			}()
+			err := k.brokersCreateTopic(k.URIs, topic, opts.Part, opts.Replica)
 			if err != nil {
 				return nil, err
 			}

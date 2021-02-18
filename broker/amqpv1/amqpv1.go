@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/godaner/brokerc/broker"
 	"github.com/godaner/brokerc/log"
+	sync2 "github.com/godaner/brokerc/sync"
 	"github.com/godaner/brokerc/tls"
 	AMQP "github.com/streadway/amqp"
 	"golang.org/x/net/context"
@@ -18,7 +19,6 @@ const (
 
 type AMQPBrokerV1 struct {
 	sync.Once
-	sync.Mutex
 	URI         string // amqp[s]://[username][:password]@host.domain[:port][vhost]
 	CID         string // client id
 	CACertFile  string
@@ -48,8 +48,8 @@ func (a *AMQPBrokerV1) Marshal() string {
 func (a *AMQPBrokerV1) Connect() error {
 	a.Do(func() {
 		a.subscribers = make([]*amqpSubscriber, 0)
-		a.rem = &sync.Map{}
 	})
+	a.rem = &sync.Map{} // clear it ?
 	a.Logger.Debugf("AMQPBrokerV1#connect : info is : %v !", a)
 	t, err := tls.GetClientTLSConfig(a.Insecure, a.CACertFile, a.CertFile, a.KeyFile)
 	if err != nil {
@@ -110,32 +110,25 @@ func (a *AMQPBrokerV1) Publish(topic string, msg *broker.Message, opt ...broker.
 		}
 	}
 	if opts.ExchangeName != "" && opts.ExchangeType != "" {
-		err = func() error {
-			_, ok := a.rem.Load("exchange" + opts.ExchangeName)
-			if !ok {
-				a.Lock()
-				defer a.Unlock()
-				_, ok := a.rem.Load("exchange" + opts.ExchangeName)
-				if !ok {
-					// exchange
-					a.Logger.Debugf("AMQPBrokerV1#Publish : dec exchange , name is : %v , type is : %v !", opts.ExchangeName, opts.ExchangeType)
-					err = a.publisherCh.ExchangeDeclare(
-						opts.ExchangeName,     // name
-						opts.ExchangeType,     // type
-						opts.ExchangeDuration, // durable
-						opts.ExchangeAD,       // auto-deleted
-						false,                 // internal
-						false,                 // no-wait
-						nil,                   // arguments
-					)
-					if err != nil {
-						return err
-					}
-					a.rem.Store("exchange"+opts.ExchangeName, true)
-				}
+		onceErrI, _ := a.rem.LoadOrStore("exchange"+opts.ExchangeName, sync2.OnceError{})
+		onceErr := onceErrI.(sync2.OnceError)
+		err := onceErr.Do(func() error {
+			// exchange
+			a.Logger.Debugf("AMQPBrokerV1#Publish : dec exchange , name is : %v , type is : %v !", opts.ExchangeName, opts.ExchangeType)
+			err = a.publisherCh.ExchangeDeclare(
+				opts.ExchangeName,     // name
+				opts.ExchangeType,     // type
+				opts.ExchangeDuration, // durable
+				opts.ExchangeAD,       // auto-deleted
+				false,                 // internal
+				false,                 // no-wait
+				nil,                   // arguments
+			)
+			if err != nil {
+				return err
 			}
 			return nil
-		}()
+		})
 		if err != nil {
 			return err
 		}
@@ -220,7 +213,7 @@ func (s *amqpSubscriber) subscribe() (err error) {
 	if err != nil {
 		return err
 	}
-	if s.opts.ExchangeName != "" {
+	if s.opts.ExchangeName != "" && s.opts.ExchangeType != "" {
 		err = s.ch.ExchangeDeclare(
 			s.opts.ExchangeName,     // name
 			s.opts.ExchangeType,     // type

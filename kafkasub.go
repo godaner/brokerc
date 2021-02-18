@@ -16,7 +16,7 @@ var KafkaSubscribeCommand = cli.Command{
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:     "t",
-			Usage:    "topic , when p and r is not zero , we will create this topic.",
+			Usage:    "topic , this topic will be created when both parameters p and r are not 0.",
 			Required: true,
 		},
 		cli.StringFlag{
