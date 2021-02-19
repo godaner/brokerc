@@ -21,7 +21,7 @@ func main() {
 	app.Name = "brokerc"
 	app.HelpName = "brokerc"
 	app.Usage = "brokerc is a cross-platform publish and subscribe command line client tool, including mqtt client, amqp client, kafka client, http client."
-	app.Version = "1.0.2"
+	app.Version = "1.0.0"
 	app.Commands = []cli.Command{
 		MQTTPublishCommand,
 		MQTTSubscribeCommand,
