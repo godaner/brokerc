@@ -5,10 +5,23 @@ import (
 	"fmt"
 	"github.com/godaner/brokerc/broker"
 	"github.com/godaner/brokerc/broker/httpv1"
+	"github.com/godaner/brokerc/spinner"
 	"github.com/urfave/cli"
+	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
+	"time"
+)
+
+const (
+	B  = 1
+	KB = 1024 * B
+	MB = 1024 * KB
+	GB = 1024 * MB
+	TB = 1024 * GB
 )
 
 var HTTPPublishCommand = cli.Command{
@@ -35,7 +48,7 @@ var HTTPPublishCommand = cli.Command{
 		cli.StringFlag{
 			Name:     "o",
 			Usage:    "write to file instead of stdout.",
-			Required: true,
+			Required: false,
 		},
 		cli.BoolFlag{
 			Name:     "d",
@@ -79,22 +92,69 @@ var HTTPPublishCommand = cli.Command{
 
 		b := httpv1.HTTPBrokerV1{
 			PublishCallBack: func(topic string, resp *http.Response) error {
-				bs, err := ioutil.ReadAll(resp.Body)
-				if err != nil {
-					logger.Errorf("PUBLISH RECV ERR=> err:%v !", err)
-					return nil
-				}
+				hs, _ := json.Marshal(resp.Header)
+				logger.Debugf("PUBLISH RECV=> uri:%v, H:%v !", uri, string(hs))
 				defer resp.Body.Close()
 				if o != "" {
-					err = ioutil.WriteFile(o, bs, 0755)
+					lens := resp.Header.Get("Content-Length")
+					len, _ := strconv.ParseUint(lens, 10, 64)
+					// Spinner
+					stopUpdateSpinner := make(chan struct{})
+					defer close(stopUpdateSpinner)
+					s := spinner.Spinner{}
+					s.Start()
+					defer s.Stop()
+					download, v, fileName := uint64(0), uint64(0), o
+					s.UpdateStatus(&spinner.Status{
+						Download: &download,
+						Total:    &len,
+						V:        &v,
+						FileName: &fileName,
+					})
+					go func() {
+						for ; ; {
+							select {
+							case <-time.After(time.Second):
+								s.UpdateStatus(&spinner.Status{
+									Download: &download,
+									Total:    &len,
+									V:        &v,
+									FileName: &fileName,
+								})
+								v = 0
+							case <-stopUpdateSpinner:
+								return
+							}
+						}
+					}()
+					// download
+					file, err := os.Create(o)
 					if err != nil {
-						logger.Errorf("PUBLISH RECV ERR=> err:%v !", err)
-						return nil
+						return err
+					}
+					defer file.Close()
+					buf := make([]byte, KB)
+					for {
+						n, err := resp.Body.Read(buf)
+						if err != nil {
+							return nil
+						}
+						if n <= 0 || err == io.EOF {
+							break
+						}
+						download += uint64(n)
+						v += uint64(n)
+						_, err = file.Write(buf[:n])
+						if err != nil {
+							return nil
+						}
 					}
 				} else {
-					hs, _ := json.Marshal(resp.Header)
+					bs, err := ioutil.ReadAll(resp.Body)
+					if err != nil {
+						return err
+					}
 					logger.Infof("PUBLISH RECV=> uri:%v, X:%v, resp:%v !", uri, X, string(bs))
-					logger.Debugf("PUBLISH RECV=> uri:%v, H:%v !", uri, string(hs))
 				}
 				return nil
 			},
