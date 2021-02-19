@@ -137,7 +137,7 @@ var HTTPPublishCommand = cli.Command{
 					for {
 						n, err := resp.Body.Read(buf)
 						if err != nil {
-							return nil
+							return err
 						}
 						if n <= 0 || err == io.EOF {
 							break
@@ -146,7 +146,7 @@ var HTTPPublishCommand = cli.Command{
 						v += uint64(n)
 						_, err = file.Write(buf[:n])
 						if err != nil {
-							return nil
+							return err
 						}
 					}
 				} else {
