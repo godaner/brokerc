@@ -105,7 +105,7 @@ var HTTPPublishCommand = cli.Command{
 					// Spinner
 					stopUpdateSpinner := make(chan struct{})
 					defer close(stopUpdateSpinner)
-					s := spinner.Spinner{}
+					s := spinner.DownloadSpinner{}
 					s.Start()
 					defer s.Stop()
 					download, v, fileName := uint64(0), uint64(0), o
@@ -117,11 +117,11 @@ var HTTPPublishCommand = cli.Command{
 						for ; ; {
 							select {
 							case <-time.After(time.Second):
-								time := time.Now().Sub(st)
+								spentTime := time.Now().Sub(st)
 								s.UpdateStatus(&spinner.Status{
-									Download: &download,
-									V:        &v,
-									Time:     &time,
+									Download:  &download,
+									V:         &v,
+									SpentTime: &spentTime,
 								})
 								v = 0
 							case <-stopUpdateSpinner:

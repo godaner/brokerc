@@ -10,33 +10,33 @@ import (
 type status struct {
 	download, total, v uint64
 	fileName           string
-	time               time.Duration
+	spentTime          time.Duration
 }
 type Status struct {
 	Download, Total, V *uint64
 	FileName           *string
-	Time               *time.Duration
+	SpentTime          *time.Duration
 }
-type Spinner struct {
+type DownloadSpinner struct {
 	sync.Once
 	status
 	s *spinner.Spinner
 }
 
-func (s *Spinner) init() {
+func (s *DownloadSpinner) init() {
 	s.Do(func() {
 		s.s = spinner.New(s.computeStatus(), time.Second)
 	})
 }
-func (s *Spinner) Start() {
+func (s *DownloadSpinner) Start() {
 	s.init()
 	s.s.Start()
 }
-func (s *Spinner) Stop() {
+func (s *DownloadSpinner) Stop() {
 	s.init()
 	s.s.Stop()
 }
-func (s *Spinner) UpdateStatus(sts *Status) {
+func (s *DownloadSpinner) UpdateStatus(sts *Status) {
 	s.init()
 	if sts == nil {
 		return
@@ -53,18 +53,22 @@ func (s *Spinner) UpdateStatus(sts *Status) {
 	if sts.FileName != nil {
 		s.status.fileName = *sts.FileName
 	}
-	if sts.Time != nil {
-		s.status.time = *sts.Time
+	if sts.SpentTime != nil {
+		s.status.spentTime = *sts.SpentTime
 	}
 	s.s.UpdateCharSet(s.computeStatus())
 }
 
-func (s *Spinner) computeStatus() []string {
+func (s *DownloadSpinner) computeStatus() []string {
 	p := int64(0)
 	if s.total != 0 {
 		p = int64((float64(s.download) / float64(s.total)) * 100)
 	}
-	return []string{fmt.Sprint("Downloading file: ", s.fileName, ", ", p, "%, ", formatSize(int64(s.download)), "/", formatSize(int64(s.total))+", ", formatSize(int64(s.v)), "/s, ", (s.time/time.Second)*time.Second)}
+	leftTime := time.Hour * 999
+	if s.v != 0 {
+		leftTime = time.Duration((s.total-s.download)/s.v) * time.Second
+	}
+	return []string{fmt.Sprint("Downloading file: ", s.fileName, ", ", p, "%, ", formatSize(int64(s.download)), "/", formatSize(int64(s.total))+", ", formatSize(int64(s.v)), "/s, spent time: ", (s.spentTime/time.Second)*time.Second, ", left time: ", leftTime)}
 }
 
 func formatSize(size int64) (s string) {
