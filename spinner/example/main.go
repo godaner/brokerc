@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	s := spinner.Spinner{}
+	s := spinner.DownloadSpinner{}
 	s.Start() // Start the spinner
 	defer s.Stop()
 	go func() {
