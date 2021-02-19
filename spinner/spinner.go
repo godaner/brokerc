@@ -10,10 +10,12 @@ import (
 type status struct {
 	download, total, v uint64
 	fileName           string
+	time               time.Duration
 }
 type Status struct {
 	Download, Total, V *uint64
 	FileName           *string
+	Time               *time.Duration
 }
 type Spinner struct {
 	sync.Once
@@ -42,14 +44,17 @@ func (s *Spinner) UpdateStatus(sts *Status) {
 	if sts.Total != nil {
 		s.status.total = *sts.Total
 	}
-	if sts.Total != nil {
+	if sts.Download != nil {
 		s.status.download = *sts.Download
 	}
-	if sts.Total != nil {
+	if sts.V != nil {
 		s.status.v = *sts.V
 	}
 	if sts.FileName != nil {
 		s.status.fileName = *sts.FileName
+	}
+	if sts.Time != nil {
+		s.status.time = *sts.Time
 	}
 	s.s.UpdateCharSet(s.computeStatus())
 }
@@ -59,7 +64,7 @@ func (s *Spinner) computeStatus() []string {
 	if s.total != 0 {
 		p = int64((float64(s.download) / float64(s.total)) * 100)
 	}
-	return []string{fmt.Sprint("Downloading file: ", s.fileName, ", ", p, "%, ", formatSize(int64(s.download)), "/", formatSize(int64(s.total))+", ", formatSize(int64(s.v)), "/s")}
+	return []string{fmt.Sprint("Downloading file: ", s.fileName, ", ", p, "%, ", formatSize(int64(s.download)), "/", formatSize(int64(s.total))+", ", formatSize(int64(s.v)), "/s, ", (s.time/time.Second)*time.Second)}
 }
 
 func formatSize(size int64) (s string) {

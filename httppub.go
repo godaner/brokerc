@@ -7,7 +7,6 @@ import (
 	"github.com/godaner/brokerc/broker/httpv1"
 	"github.com/godaner/brokerc/spinner"
 	"github.com/urfave/cli"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -77,6 +76,7 @@ var HTTPPublishCommand = cli.Command{
 		},
 	},
 	Action: func(context *cli.Context) error {
+		st := time.Now()
 		uri := context.Args().Get(0)
 		X, H, d, m, o, cafile, cert, key, insecure :=
 			context.String("X"),
@@ -96,6 +96,10 @@ var HTTPPublishCommand = cli.Command{
 				logger.Debugf("PUBLISH RECV=> uri:%v, H:%v !", uri, string(hs))
 				defer resp.Body.Close()
 				if o != "" {
+					// after spinner stop
+					defer func() {
+						logger.Infof("PUBLISH RECV=> Download file: %v success !", o)
+					}()
 					lens := resp.Header.Get("Content-Length")
 					len, _ := strconv.ParseUint(lens, 10, 64)
 					// Spinner
@@ -106,20 +110,18 @@ var HTTPPublishCommand = cli.Command{
 					defer s.Stop()
 					download, v, fileName := uint64(0), uint64(0), o
 					s.UpdateStatus(&spinner.Status{
-						Download: &download,
-						Total:    &len,
-						V:        &v,
 						FileName: &fileName,
+						Total:    &len,
 					})
 					go func() {
 						for ; ; {
 							select {
 							case <-time.After(time.Second):
+								time := time.Now().Sub(st)
 								s.UpdateStatus(&spinner.Status{
 									Download: &download,
-									Total:    &len,
 									V:        &v,
-									FileName: &fileName,
+									Time:     &time,
 								})
 								v = 0
 							case <-stopUpdateSpinner:
@@ -136,17 +138,16 @@ var HTTPPublishCommand = cli.Command{
 					buf := make([]byte, KB)
 					for {
 						n, err := resp.Body.Read(buf)
-						if err != nil {
-							return err
+						if n > 0 {
+							download += uint64(n)
+							v += uint64(n)
+							_, err := file.Write(buf[:n])
+							if err != nil {
+								return err
+							}
 						}
-						if n <= 0 || err == io.EOF {
+						if err != nil {
 							break
-						}
-						download += uint64(n)
-						v += uint64(n)
-						_, err = file.Write(buf[:n])
-						if err != nil {
-							return err
 						}
 					}
 				} else {

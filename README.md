@@ -60,7 +60,7 @@ USAGE:
    brokerc [global options] command [command options] [arguments...]
 
 VERSION:
-   v1.0.0
+   v1.0.1
 
 COMMANDS:
    mqttpub   publish mqtt message
