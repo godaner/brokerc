@@ -9,7 +9,7 @@ Or get it from the released version:
 
     https://github.com/godaner/brokerc/releases
     
-> Note: curl -LJO https://github.com/godaner/brokerc/releases/download/v1.0.1/brokerc_linux-amd64.tar.gz, tar -zxvf brokerc_linux-amd64.tar.gz
+> Note: curl -LJO https://github.com/godaner/brokerc/releases/download/v1.0.2/brokerc_linux-amd64.tar.gz, tar -zxvf brokerc_linux-amd64.tar.gz
 
 # Supported platforms
 
@@ -60,7 +60,7 @@ USAGE:
    brokerc [global options] command [command options] [arguments...]
 
 VERSION:
-   v1.0.1
+   v1.0.2
 
 COMMANDS:
    mqttpub   publish mqtt message
