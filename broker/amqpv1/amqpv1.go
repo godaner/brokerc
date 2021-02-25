@@ -239,16 +239,18 @@ func (s *amqpSubscriber) subscribe() (err error) {
 	if err != nil {
 		return err
 	}
-	if len(topics) == 0 {
-		err = s.ch.QueueBind(q.Name, "", s.opts.ExchangeName, false, nil)
-		if err != nil {
-			return err
-		}
-	} else {
-		for _, topic := range topics {
-			err = s.ch.QueueBind(q.Name, topic, s.opts.ExchangeName, false, nil)
+	if s.opts.ExchangeName != "" {
+		if len(topics) == 0 {
+			err = s.ch.QueueBind(q.Name, "", s.opts.ExchangeName, false, nil)
 			if err != nil {
 				return err
+			}
+		} else {
+			for _, topic := range topics {
+				err = s.ch.QueueBind(q.Name, topic, s.opts.ExchangeName, false, nil)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
